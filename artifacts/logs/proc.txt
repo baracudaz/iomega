@@ -1,0 +1,458 @@
+root@iomega:/# ps -ef
+UID        PID  PPID  C STIME TTY          TIME CMD
+root         1     0  0 08:57 ?        00:00:05 init [2]                         
+root         2     0  0 08:57 ?        00:00:00 [kthreadd]
+root         3     2  0 08:57 ?        00:00:00 [ksoftirqd/0]
+root         4     2  0 08:57 ?        00:00:00 [events/0]
+root         5     2  0 08:57 ?        00:00:00 [khelper]
+root         8     2  0 08:57 ?        00:00:00 [async/mgr]
+root       113     2  0 08:57 ?        00:00:00 [kblockd/0]
+root       122     2  0 08:57 ?        00:00:00 [khubd]
+root       147     2  0 08:57 ?        00:00:00 [crypto]
+root       148     2  0 08:57 ?        00:00:00 [crypto_ret]
+root       156     2  0 08:57 ?        00:00:00 [pdflush]
+root       157     2  0 08:57 ?        00:00:00 [pdflush]
+root       158     2  0 08:57 ?        00:00:00 [kswapd0]
+root       159     2  0 08:57 ?        00:00:00 [aio/0]
+root       160     2  0 08:57 ?        00:00:00 [unionfs_siod/0]
+root       161     2  0 08:57 ?        00:00:00 [nfsiod]
+root       162     2  0 08:57 ?        00:00:00 [cifsoplockd]
+root       163     2  0 08:57 ?        00:00:00 [crypto/0]
+root       443     2  0 08:57 ?        00:00:00 [399B4F5]
+root       445     2  0 08:57 ?        00:00:00 [scsi_eh_0]
+root       446     2  0 08:57 ?        00:00:00 [scsi_eh_1]
+root       459     2  0 08:57 ?        00:00:00 [mtdblockd]
+root       460     2  0 08:57 ?        00:00:00 [nftld]
+root       515     2  0 08:57 ?        00:00:00 [kstriped]
+root       517     2  0 08:57 ?        00:00:00 [kcryptd/0]
+root       544     2  0 08:57 ?        00:00:00 [usbhid_resumer]
+root       548     2  0 08:57 ?        00:00:00 [rpciod/0]
+root       556     2  0 08:57 ?        00:00:00 [scsi_eh_2]
+root       557     2  0 08:57 ?        00:00:00 [usb-storage]
+root       612     2  0 08:57 ?        00:00:00 [ubi_bgt0d]
+root       653     2  0 08:57 ?        00:00:00 [ubifs_bgt0_0]
+root       676     2  0 08:57 ?        00:00:12 [loop0]
+root       679     2  0 08:57 ?        00:00:00 [loop1]
+root       695     2  0 08:57 ?        00:00:00 [loop2]
+root       754     2  0 08:57 ?        00:00:00 [xfs_mru_cache]
+root       761     2  0 08:57 ?        00:00:00 [xfslogd/0]
+root       762     2  0 08:57 ?        00:00:00 [xfsdatad/0]
+root       763     2  0 08:57 ?        00:00:00 [xfsconvertd/0]
+root       802     2  0 08:57 ?        00:00:00 [bluetooth]
+root      1017     1  0 08:57 ?        00:00:00 udevd --daemon
+root      1064  1017  0 08:57 ?        00:00:00 udevd --daemon
+root      1069  1017  0 08:57 ?        00:00:00 udevd --daemon
+root      1515     1  0 08:57 ?        00:00:00 /sbin/rpcbind -w
+root      1620     1  0 08:57 ?        00:00:00 /usr/sbin/rsyslogd -c3 -f /etc/rsyslog.conf
+nobody    2060     1  0 08:57 ?        00:00:00 /usr/sbin/mdnsd
+root      2062     1  0 08:57 ?        00:00:00 /bin/hostnamed
+root      2070     1  0 08:57 ?        00:00:00 /usr/local/appmd appmd
+root      2080     1  0 08:57 ?        00:00:00 /usr/sbin/cupsd -C /etc/cups/cupsd.conf
+root      2108  2070  0 08:57 ?        00:00:00 /usr/bin/dbus-daemon --nofork --system
+root      2110  2070  0 08:57 ?        00:00:00 /usr/local/eventd eventd
+nobody    2132     1  0 08:58 ?        00:00:00 /usr/sbin/mdnsd
+root      2134     1  0 08:58 ?        00:00:00 /bin/hostnamed
+root      2135  2070  0 08:58 ?        00:00:00 /usr/local/pkgd pkgd
+root      2147  2070  0 08:58 ?        00:00:00 /usr/sbin/upnpdiscovery
+root      2148  2070  0 08:58 ?        00:00:00 /usr/local/displayd displayd
+nobody    2150  2070  0 08:58 ?        00:00:00 /usr/sbin/mdnsd -debug
+root      2153  2070  0 08:58 ?        00:00:00 /usr/sbin/sshd -D -p 22
+root      2156  2070  0 08:58 ?        00:00:02 /usr/local/svcd svcd
+root      2162  2070  0 08:58 ?        00:00:00 /usr/sbin/acpid -c /usr/local/acpi/events -f
+root      2169  2070  0 08:58 ?        00:00:00 /usr/local/imgd imgd
+root      2180  2070  0 08:58 ?        00:00:00 /bin/sh /usr/bin/chkvardiff.sh
+root      2184  2070  0 08:58 ?        00:00:00 /bin/sh /usr/bin/sohoAudit
+root      2256  2070  0 08:58 ?        00:00:00 /usr/local/apache/bin/httpd -D NO_DETACH -f /ram/httpd.conf -k start
+root      2260  2070  0 08:58 ?        00:00:00 /usr/local/pcloudd pcloudd
+root      2269  2070  0 08:58 ?        00:00:00 /usr/local/activefolder activefolder
+root      2305  2070  0 08:58 ?        00:00:00 /usr/sbin/cron -f
+root      2343  2256  0 08:58 ?        00:00:00 /usr/local/apache/bin/httpd -D NO_DETACH -f /ram/httpd.conf -k start
+root      2344  2256  0 08:58 ?        00:00:00 /usr/local/apache/bin/httpd -D NO_DETACH -f /ram/httpd.conf -k start
+root      2345  2256  0 08:58 ?        00:00:00 /usr/local/apache/bin/httpd -D NO_DETACH -f /ram/httpd.conf -k start
+root      2489     1  0 08:58 ?        00:00:00 dhclient -v -pf /run/dhclient.eth0.pid -lf /var/lib/dhcp/dhclient.eth0.leases eth0
+root      2594     1  0 08:58 ?        00:00:00 /usr/local/winRally/lld2d eth0
+root      2645     1  0 08:58 ?        00:00:00 /sbin/netplugd -c /etc/network/netplugd.conf -p /tmp/netplugd.pid
+root      2837  2070  0 08:58 ?        00:00:00 /usr/local/samba/sbin/nmbd -F
+root      3044  2153  0 08:58 ?        00:00:00 sshd: root@pts/0          
+root      3064  3044  0 08:59 pts/0    00:00:00 -sh
+root      3081     1  0 08:59 ttyS0    00:00:00 /sbin/getty -L ttyS0 115200 vt100
+root      4983  2180  0 09:58 ?        00:00:00 sleep 5m
+root      5173  2184  0 10:03 ?        00:00:00 sleep 10
+root      5174  3064  0 10:03 pts/0    00:00:00 ps -ef
+
+root@iomega:/# df -h
+Filesystem      Size  Used Avail Use% Mounted on
+rootfs           50M  3.8M   47M   8% /
+/dev/root.old    12M  3.2M  8.0M  29% /initrd
+none             50M  3.8M   47M   8% /
+ubi0:boot       928M  363M  561M  40% /boot
+/dev/loop0      677M  607M   71M  90% /mnt/apps
+/dev/loop1      7.5M  2.3M  4.9M  32% /mnt/etc
+none            7.5M  2.3M  4.9M  32% /etc
+/dev/loop2      128K  128K     0 100% /oem
+tmpfs            10M  4.0K   10M   1% /dev
+
+root@iomega:/# mount
+/dev/root.old on /initrd type ext2 (rw,relatime,errors=continue)
+none on / type tmpfs (rw,relatime,size=51200k,nr_inodes=30951)
+ubi0:boot on /boot type ubifs (rw,noatime,sync)
+/dev/loop0 on /mnt/apps type ext2 (ro,relatime)
+/dev/loop1 on /mnt/etc type ext2 (rw,noatime,sync)
+none on /etc type unionfs (rw,noatime,sync,dirs=/mnt/etc=rw:/mnt/apps/etc=ro)
+/dev/loop2 on /oem type squashfs (ro,relatime)
+proc on /proc type proc (rw,relatime)
+none on /proc/bus/usb type usbfs (rw,relatime)
+none on /proc/fs/nfsd type nfsd (rw,relatime)
+none on /sys type sysfs (rw,relatime)
+tmpfs on /dev type tmpfs (rw,relatime,size=10240k,mode=755)
+devpts on /dev/pts type devpts (rw,relatime,gid=5,mode=620)
+
+root@iomega:/# ll /sys/class/nasmonitor/
+total 0
+drwxr-xr-x  2 root root    0 Jan 15 08:57 .
+drwxr-xr-x 29 root root    0 Jan 15 08:57 ..
+-r--r--r--  1 root root 4096 Jan 15 08:57 cputemp
+-r--r--r--  1 root root 4096 Jan 15 08:57 mbtemp1
+-r--r--r--  1 root root 4096 Jan 15 08:57 mbtemp2
+-r--r--r--  1 root root 4096 Jan 15 08:57 sysfan1speed
+root@iomega:/# cat /sys/class/nasmonitor/*
+52
+41
+35
+778
+
+root@iomega:/# find /sys/devices/platform/mv64xxx_i2c.0/i2c-adapter
+/sys/devices/platform/mv64xxx_i2c.0/i2c-adapter
+/sys/devices/platform/mv64xxx_i2c.0/i2c-adapter/i2c-0
+/sys/devices/platform/mv64xxx_i2c.0/i2c-adapter/i2c-0/uevent
+/sys/devices/platform/mv64xxx_i2c.0/i2c-adapter/i2c-0/subsystem
+/sys/devices/platform/mv64xxx_i2c.0/i2c-adapter/i2c-0/device
+/sys/devices/platform/mv64xxx_i2c.0/i2c-adapter/i2c-0/name
+/sys/devices/platform/mv64xxx_i2c.0/i2c-adapter/i2c-0/new_device
+/sys/devices/platform/mv64xxx_i2c.0/i2c-adapter/i2c-0/delete_device
+/sys/devices/platform/mv64xxx_i2c.0/i2c-adapter/i2c-0/i2c-0
+/sys/devices/platform/mv64xxx_i2c.0/i2c-adapter/i2c-0/i2c-0/uevent
+/sys/devices/platform/mv64xxx_i2c.0/i2c-adapter/i2c-0/i2c-0/dev
+/sys/devices/platform/mv64xxx_i2c.0/i2c-adapter/i2c-0/i2c-0/subsystem
+/sys/devices/platform/mv64xxx_i2c.0/i2c-adapter/i2c-0/i2c-0/device
+/sys/devices/platform/mv64xxx_i2c.0/i2c-adapter/i2c-0/i2c-0/name
+/sys/devices/platform/mv64xxx_i2c.0/i2c-adapter/i2c-0/0-002e
+/sys/devices/platform/mv64xxx_i2c.0/i2c-adapter/i2c-0/0-002e/uevent
+/sys/devices/platform/mv64xxx_i2c.0/i2c-adapter/i2c-0/0-002e/name
+/sys/devices/platform/mv64xxx_i2c.0/i2c-adapter/i2c-0/0-002e/modalias
+/sys/devices/platform/mv64xxx_i2c.0/i2c-adapter/i2c-0/0-002e/subsystem
+/sys/devices/platform/mv64xxx_i2c.0/i2c-adapter/i2c-0/0-002e/driver
+/sys/devices/platform/mv64xxx_i2c.0/i2c-adapter/i2c-0/0-002e/in1_max
+/sys/devices/platform/mv64xxx_i2c.0/i2c-adapter/i2c-0/0-002e/in2_max
+/sys/devices/platform/mv64xxx_i2c.0/i2c-adapter/i2c-0/0-002e/in1_min
+/sys/devices/platform/mv64xxx_i2c.0/i2c-adapter/i2c-0/0-002e/in2_min
+/sys/devices/platform/mv64xxx_i2c.0/i2c-adapter/i2c-0/0-002e/in1_input
+/sys/devices/platform/mv64xxx_i2c.0/i2c-adapter/i2c-0/0-002e/in2_input
+/sys/devices/platform/mv64xxx_i2c.0/i2c-adapter/i2c-0/0-002e/in1_alarm
+/sys/devices/platform/mv64xxx_i2c.0/i2c-adapter/i2c-0/0-002e/in2_alarm
+/sys/devices/platform/mv64xxx_i2c.0/i2c-adapter/i2c-0/0-002e/temp1_max
+/sys/devices/platform/mv64xxx_i2c.0/i2c-adapter/i2c-0/0-002e/temp2_max
+/sys/devices/platform/mv64xxx_i2c.0/i2c-adapter/i2c-0/0-002e/temp3_max
+/sys/devices/platform/mv64xxx_i2c.0/i2c-adapter/i2c-0/0-002e/temp1_min
+/sys/devices/platform/mv64xxx_i2c.0/i2c-adapter/i2c-0/0-002e/temp2_min
+/sys/devices/platform/mv64xxx_i2c.0/i2c-adapter/i2c-0/0-002e/temp3_min
+/sys/devices/platform/mv64xxx_i2c.0/i2c-adapter/i2c-0/0-002e/temp1_input
+/sys/devices/platform/mv64xxx_i2c.0/i2c-adapter/i2c-0/0-002e/temp2_input
+/sys/devices/platform/mv64xxx_i2c.0/i2c-adapter/i2c-0/0-002e/temp3_input
+/sys/devices/platform/mv64xxx_i2c.0/i2c-adapter/i2c-0/0-002e/temp1_alarm
+/sys/devices/platform/mv64xxx_i2c.0/i2c-adapter/i2c-0/0-002e/temp2_alarm
+/sys/devices/platform/mv64xxx_i2c.0/i2c-adapter/i2c-0/0-002e/temp3_alarm
+/sys/devices/platform/mv64xxx_i2c.0/i2c-adapter/i2c-0/0-002e/temp1_auto_point1_temp
+/sys/devices/platform/mv64xxx_i2c.0/i2c-adapter/i2c-0/0-002e/temp2_auto_point1_temp
+/sys/devices/platform/mv64xxx_i2c.0/i2c-adapter/i2c-0/0-002e/temp3_auto_point1_temp
+/sys/devices/platform/mv64xxx_i2c.0/i2c-adapter/i2c-0/0-002e/temp1_auto_point2_temp
+/sys/devices/platform/mv64xxx_i2c.0/i2c-adapter/i2c-0/0-002e/temp2_auto_point2_temp
+/sys/devices/platform/mv64xxx_i2c.0/i2c-adapter/i2c-0/0-002e/temp3_auto_point2_temp
+/sys/devices/platform/mv64xxx_i2c.0/i2c-adapter/i2c-0/0-002e/fan1_min
+/sys/devices/platform/mv64xxx_i2c.0/i2c-adapter/i2c-0/0-002e/fan2_min
+/sys/devices/platform/mv64xxx_i2c.0/i2c-adapter/i2c-0/0-002e/fan3_min
+/sys/devices/platform/mv64xxx_i2c.0/i2c-adapter/i2c-0/0-002e/fan4_min
+/sys/devices/platform/mv64xxx_i2c.0/i2c-adapter/i2c-0/0-002e/fan1_input
+/sys/devices/platform/mv64xxx_i2c.0/i2c-adapter/i2c-0/0-002e/fan2_input
+/sys/devices/platform/mv64xxx_i2c.0/i2c-adapter/i2c-0/0-002e/fan3_input
+/sys/devices/platform/mv64xxx_i2c.0/i2c-adapter/i2c-0/0-002e/fan4_input
+/sys/devices/platform/mv64xxx_i2c.0/i2c-adapter/i2c-0/0-002e/fan1_alarm
+/sys/devices/platform/mv64xxx_i2c.0/i2c-adapter/i2c-0/0-002e/fan2_alarm
+/sys/devices/platform/mv64xxx_i2c.0/i2c-adapter/i2c-0/0-002e/fan3_alarm
+/sys/devices/platform/mv64xxx_i2c.0/i2c-adapter/i2c-0/0-002e/fan4_alarm
+/sys/devices/platform/mv64xxx_i2c.0/i2c-adapter/i2c-0/0-002e/pwm_use_point2_pwm_at_crit
+/sys/devices/platform/mv64xxx_i2c.0/i2c-adapter/i2c-0/0-002e/pwm1
+/sys/devices/platform/mv64xxx_i2c.0/i2c-adapter/i2c-0/0-002e/pwm2
+/sys/devices/platform/mv64xxx_i2c.0/i2c-adapter/i2c-0/0-002e/pwm3
+/sys/devices/platform/mv64xxx_i2c.0/i2c-adapter/i2c-0/0-002e/pwm1_auto_point1_pwm
+/sys/devices/platform/mv64xxx_i2c.0/i2c-adapter/i2c-0/0-002e/pwm2_auto_point1_pwm
+/sys/devices/platform/mv64xxx_i2c.0/i2c-adapter/i2c-0/0-002e/pwm3_auto_point1_pwm
+/sys/devices/platform/mv64xxx_i2c.0/i2c-adapter/i2c-0/0-002e/pwm1_auto_point2_pwm
+/sys/devices/platform/mv64xxx_i2c.0/i2c-adapter/i2c-0/0-002e/pwm2_auto_point2_pwm
+/sys/devices/platform/mv64xxx_i2c.0/i2c-adapter/i2c-0/0-002e/pwm3_auto_point2_pwm
+/sys/devices/platform/mv64xxx_i2c.0/i2c-adapter/i2c-0/0-002e/pwm1_enable
+/sys/devices/platform/mv64xxx_i2c.0/i2c-adapter/i2c-0/0-002e/pwm2_enable
+/sys/devices/platform/mv64xxx_i2c.0/i2c-adapter/i2c-0/0-002e/pwm3_enable
+/sys/devices/platform/mv64xxx_i2c.0/i2c-adapter/i2c-0/0-002e/pwm1_auto_channels_temp
+/sys/devices/platform/mv64xxx_i2c.0/i2c-adapter/i2c-0/0-002e/pwm2_auto_channels_temp
+/sys/devices/platform/mv64xxx_i2c.0/i2c-adapter/i2c-0/0-002e/pwm3_auto_channels_temp
+/sys/devices/platform/mv64xxx_i2c.0/i2c-adapter/i2c-0/0-002e/hwmon
+/sys/devices/platform/mv64xxx_i2c.0/i2c-adapter/i2c-0/0-002e/hwmon/hwmon0
+/sys/devices/platform/mv64xxx_i2c.0/i2c-adapter/i2c-0/0-002e/hwmon/hwmon0/uevent
+/sys/devices/platform/mv64xxx_i2c.0/i2c-adapter/i2c-0/0-002e/hwmon/hwmon0/subsystem
+/sys/devices/platform/mv64xxx_i2c.0/i2c-adapter/i2c-0/0-002e/hwmon/hwmon0/device
+
+root@iomega:/# cat /sys/devices/platform/mv64xxx_i2c.0/i2c-adapter/i2c-0/0-002e/hwmon/hwmon0/device/modalias 
+i2c:adt7473
+
+root@iomega:/# cat /proc/cmdline 
+console=ttyS0,115200 root=/dev/ram0 :::DB88FXX81:eth0:none mtdparts=nand_mtd:0x80000@0(uboot),0x20000@0xa0000(env),0x20000@0xc0000(env2),0x300000@0x100000(uImage),0x400000@0x400000(initrd),0x3f800000@0x800000(boot),1024m@0x0(flash)
+
+root@iomega:/# mtdinfo -a
+Count of MTD devices:           7
+Present MTD devices:            mtd0, mtd1, mtd2, mtd3, mtd4, mtd5, mtd6
+Sysfs interface supported:      yes
+
+mtd0
+Name:                           uboot
+Type:                           nand
+Eraseblock size:                131072 bytes, 128.0 KiB
+Amount of eraseblocks:          4 (524288 bytes, 512.0 KiB)
+Minimum input/output unit size: 2048 bytes
+Sub-page size:                  512 bytes
+OOB size:                       64 bytes
+Character device major/minor:   90:0
+Bad blocks are allowed:         true
+Device is writable:             true
+
+mtd1
+Name:                           env
+Type:                           nand
+Eraseblock size:                131072 bytes, 128.0 KiB
+Amount of eraseblocks:          1 (131072 bytes, 128.0 KiB)
+Minimum input/output unit size: 2048 bytes
+Sub-page size:                  512 bytes
+OOB size:                       64 bytes
+Character device major/minor:   90:2
+Bad blocks are allowed:         true
+Device is writable:             true
+
+mtd2
+Name:                           env2
+Type:                           nand
+Eraseblock size:                131072 bytes, 128.0 KiB
+Amount of eraseblocks:          1 (131072 bytes, 128.0 KiB)
+Minimum input/output unit size: 2048 bytes
+Sub-page size:                  512 bytes
+OOB size:                       64 bytes
+Character device major/minor:   90:4
+Bad blocks are allowed:         true
+Device is writable:             true
+
+mtd3
+Name:                           uImage
+Type:                           nand
+Eraseblock size:                131072 bytes, 128.0 KiB
+Amount of eraseblocks:          24 (3145728 bytes, 3.0 MiB)
+Minimum input/output unit size: 2048 bytes
+Sub-page size:                  512 bytes
+OOB size:                       64 bytes
+Character device major/minor:   90:6
+Bad blocks are allowed:         true
+Device is writable:             true
+
+mtd4
+Name:                           initrd
+Type:                           nand
+Eraseblock size:                131072 bytes, 128.0 KiB
+Amount of eraseblocks:          32 (4194304 bytes, 4.0 MiB)
+Minimum input/output unit size: 2048 bytes
+Sub-page size:                  512 bytes
+OOB size:                       64 bytes
+Character device major/minor:   90:8
+Bad blocks are allowed:         true
+Device is writable:             true
+
+mtd5
+Name:                           boot
+Type:                           nand
+Eraseblock size:                131072 bytes, 128.0 KiB
+Amount of eraseblocks:          8128 (1065353216 bytes, 1016.0 MiB)
+Minimum input/output unit size: 2048 bytes
+Sub-page size:                  512 bytes
+OOB size:                       64 bytes
+Character device major/minor:   90:10
+Bad blocks are allowed:         true
+Device is writable:             true
+
+mtd6
+Name:                           flash
+Type:                           nand
+Eraseblock size:                131072 bytes, 128.0 KiB
+Amount of eraseblocks:          8192 (1073741824 bytes, 1024.0 MiB)
+Minimum input/output unit size: 2048 bytes
+Sub-page size:                  512 bytes
+OOB size:                       64 bytes
+Character device major/minor:   90:12
+Bad blocks are allowed:         true
+Device is writable:             true
+
+
+root@iomega:/# cat /etc/fw_env.config 
+/dev/mtd1         0x0             0x20000         0x20000
+/dev/mtd2         0x0             0x20000         0x20000
+
+root@iomega:/# mtdinfo 
+Count of MTD devices:           7
+Present MTD devices:            mtd0, mtd1, mtd2, mtd3, mtd4, mtd5, mtd6
+Sysfs interface supported:      yes
+
+root@iomega:/# cat /proc/devices 
+Character devices:
+  1 mem
+  2 pty
+  3 ttyp
+  4 /dev/vc/0
+  4 tty
+  4 ttyS
+  5 /dev/tty
+  5 /dev/console
+  5 /dev/ptmx
+  7 vcs
+ 10 misc
+ 13 input
+ 21 sg
+ 89 i2c
+ 90 mtd
+128 ptm
+136 pts
+180 usb
+189 usb_device
+252 ubi0
+253 bsg
+254 rtc
+
+Block devices:
+  1 ramdisk
+259 blkext
+  7 loop
+  8 sd
+  9 md
+ 31 mtdblock
+ 65 sd
+ 66 sd
+ 67 sd
+ 68 sd
+ 69 sd
+ 70 sd
+ 71 sd
+ 93 nftl
+128 sd
+129 sd
+130 sd
+131 sd
+132 sd
+133 sd
+134 sd
+135 sd
+253 device-mapper
+254 mdp
+
+root@iomega:/# cat /proc/partitions 
+major minor  #blocks  name
+
+   7        0     698051 loop0
+   7        1       8192 loop1
+   7        2        100 loop2
+  31        0        512 mtdblock0
+  31        1        128 mtdblock1
+  31        2        128 mtdblock2
+  31        3       3072 mtdblock3
+  31        4       4096 mtdblock4
+  31        5    1040384 mtdblock5
+  31        6    1048576 mtdblock6
+   8        0    7816704 sda
+   8        1    7815680 sda1
+
+root@iomega:/# cat /proc/stat 
+cpu  2144 0 4049 29445 1 3 2 0 0
+cpu0 2144 0 4049 29445 1 3 2 0 0
+intr 44975 0 35644 0 0 0 0 0 0 0 0 0 520 0 0 0 0 0 0 0 638 0 0 0 0 0 0 0 0 0 7114 0 0 0 0 1059 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+ctxt 40581
+btime 1579075023
+processes 3196
+procs_running 2
+procs_blocked 0
+softirq 54107 0 35644 64 741 258 907 0 0 16493
+
+root@iomega:/# uname -a
+Linux iomega 2.6.31.8 Mon Nov 17 19:24:39 EST 2014 v0.0.9 Mon Nov 17 19:24:39 EST 2014 armv5tel GNU/Linux
+
+root@iomega:/# lsmod 
+Module                  Size  Used by
+btusb                  12400  0 
+bluetooth              56724  1 btusb
+ufsd                  504236  0 
+udf                    85356  0 
+crc_itu_t               1736  1 udf
+isofs                  23440  0 
+xfs                   528264  0 
+ext4                  237824  0 
+jbd2                   56100  1 ext4
+
+root@iomega:/# cat /proc/mtd 
+dev:    size   erasesize  name
+mtd0: 00080000 00020000 "uboot"
+mtd1: 00020000 00020000 "env"
+mtd2: 00020000 00020000 "env2"
+mtd3: 00300000 00020000 "uImage"
+mtd4: 00400000 00020000 "initrd"
+mtd5: 3f800000 00020000 "boot"
+mtd6: 40000000 00020000 "flash"
+
+root@iomega:/# cat /proc/cpuinfo 
+Processor	: Feroceon 88FR131 rev 1 (v5l)
+BogoMIPS	: 1589.24
+Features	: swp half thumb fastmult edsp 
+CPU implementer	: 0x56
+CPU architecture: 5TE
+CPU variant	: 0x2
+CPU part	: 0x131
+CPU revision	: 1
+
+Hardware	: Feroceon-KW
+Revision	: 0000
+Serial		: 0000000000000000
+
+root@iomega:/# cat /proc/meminfo 
+MemTotal:         247744 kB
+MemFree:           39052 kB
+Buffers:            5040 kB
+Cached:           147984 kB
+SwapCached:            0 kB
+Active:            44100 kB
+Inactive:         130356 kB
+Active(anon):      25308 kB
+Inactive(anon):        0 kB
+Active(file):      18792 kB
+Inactive(file):   130356 kB
+Unevictable:           0 kB
+Mlocked:               0 kB
+SwapTotal:             0 kB
+SwapFree:              0 kB
+Dirty:                 0 kB
+Writeback:             0 kB
+AnonPages:         21448 kB
+Mapped:            15188 kB
+Slab:              16628 kB
+SReclaimable:       3792 kB
+SUnreclaim:        12836 kB
+PageTables:         1236 kB
+NFS_Unstable:          0 kB
+Bounce:                0 kB
+WritebackTmp:          0 kB
+CommitLimit:      123872 kB
+Committed_AS:     302604 kB
+VmallocTotal:     385024 kB
+VmallocUsed:        1236 kB
+VmallocChunk:     359740 kB

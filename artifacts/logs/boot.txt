@@ -1,0 +1,801 @@
+
+         __  __                      _ _
+        |  \/  | __ _ _ ____   _____| | |
+        | |\/| |/ _` | '__\ \ / / _ \ | |
+        | |  | | (_| | |   \ V /  __/ | |
+        |_|  |_|\__,_|_|    \_/ \___|_|_|
+ _   _     ____              _
+| | | |   | __ )  ___   ___ | |_ 
+| | | |___|  _ \ / _ \ / _ \| __| 
+| |_| |___| |_) | (_) | (_) | |_ 
+ \___/    |____/ \___/ \___/ \__|  ** ix2-nand ** ** uboot_ver:0.0.8 **
+
+ ** MARVELL BOARD: DB-88F6282A-BP LE 
+
+U-Boot 1.1.4 (Oct 28 2011 - 15:19:29) Marvell version: 3.6.1 - EMC
+
+U-Boot code: 00600000 -> 0067FFF0  BSS: -> 006CFB00
+
+Soc: 88F6282 A1 CPU running @ 1600Mhz L2 running @ 533Mhz
+SysClock = 533Mhz , TClock = 200Mhz 
+
+DRAM (DDR3) CAS Latency = 7 tRP = 7 tRAS = 20 tRCD=7
+DRAM CS[0] base 0x00000000   size 256MB 
+DRAM Total size 256MB  16bit width
+Addresses 8M - 0M are saved for the U-Boot usage.
+Mem malloc Initialization (8M - 7M): Done
+NAND:1024 MB
+Found ADT7473, program PWM1 ... OK
+Flash:  0 kB
+
+Marvell Serial ATA Adapter
+Integrated Sata device found
+
+
+CPU : Marvell Feroceon (Rev 1)
+Found kernel at 0x100000
+Found initrd at 0x400000
+
+Streaming disabled 
+Write allocate disabled
+
+
+USB 0: host mode
+PEX 0: interface detected no Link.
+PEX 1: interface detected no Link.
+Net:   egiga0 [PRIME]
+Hit any key to stop autoboot:  3  2  1  0 
+
+NAND read: device 0 offset 0x100000, size 0x300000
+
+
+Reading data from 0x100000 --   0% complete.
+Reading data from 0x107800 --   1% complete.
+Reading data from 0x10f000 --   2% complete.
+Reading data from 0x117000 --   3% complete.
+Reading data from 0x11e800 --   4% complete.
+Reading data from 0x126000 --   5% complete.
+Reading data from 0x12e000 --   6% complete.
+Reading data from 0x135800 --   7% complete.
+Reading data from 0x13d000 --   8% complete.
+Reading data from 0x145000 --   9% complete.
+Reading data from 0x14c800 --  10% complete.
+Reading data from 0x154000 --  11% complete.
+Reading data from 0x15c000 --  12% complete.
+Reading data from 0x163800 --  13% complete.
+Reading data from 0x16b800 --  14% complete.
+Reading data from 0x173000 --  15% complete.
+Reading data from 0x17a800 --  16% complete.
+Reading data from 0x182800 --  17% complete.
+Reading data from 0x18a000 --  18% complete.
+Reading data from 0x191800 --  19% complete.
+Reading data from 0x199800 --  20% complete.
+Reading data from 0x1a1000 --  21% complete.
+Reading data from 0x1a8800 --  22% complete.
+Reading data from 0x1b0800 --  23% complete.
+Reading data from 0x1b8000 --  24% complete.
+Reading data from 0x1bf800 --  25% complete.
+Reading data from 0x1c7800 --  26% complete.
+Reading data from 0x1cf000 --  27% complete.
+Reading data from 0x1d7000 --  28% complete.
+Reading data from 0x1de800 --  29% complete.
+Reading data from 0x1e6000 --  30% complete.
+Reading data from 0x1ee000 --  31% complete.
+Reading data from 0x1f5800 --  32% complete.
+Reading data from 0x1fd000 --  33% complete.
+Reading data from 0x205000 --  34% complete.
+Reading data from 0x20c800 --  35% complete.
+Reading data from 0x214000 --  36% complete.
+Reading data from 0x21c000 --  37% complete.
+Reading data from 0x223800 --  38% complete.
+Reading data from 0x22b800 --  39% complete.
+Reading data from 0x233000 --  40% complete.
+Reading data from 0x23a800 --  41% complete.
+Reading data from 0x242800 --  42% complete.
+Reading data from 0x24a000 --  43% complete.
+Reading data from 0x251800 --  44% complete.
+Reading data from 0x259800 --  45% complete.
+Reading data from 0x261000 --  46% complete.
+Reading data from 0x268800 --  47% complete.
+Reading data from 0x270800 --  48% complete.
+Reading data from 0x278000 --  49% complete.
+Reading data from 0x27f800 --  50% complete.
+Reading data from 0x287800 --  51% complete.
+Reading data from 0x28f000 --  52% complete.
+Reading data from 0x297000 --  53% complete.
+Reading data from 0x29e800 --  54% complete.
+Reading data from 0x2a6000 --  55% complete.
+Reading data from 0x2ae000 --  56% complete.
+Reading data from 0x2b5800 --  57% complete.
+Reading data from 0x2bd000 --  58% complete.
+Reading data from 0x2c5000 --  59% complete.
+Reading data from 0x2cc800 --  60% complete.
+Reading data from 0x2d4000 --  61% complete.
+Reading data from 0x2dc000 --  62% complete.
+Reading data from 0x2e3800 --  63% complete.
+Reading data from 0x2eb800 --  64% complete.
+Reading data from 0x2f3000 --  65% complete.
+Reading data from 0x2fa800 --  66% complete.
+Reading data from 0x302800 --  67% complete.
+Reading data from 0x30a000 --  68% complete.
+Reading data from 0x311800 --  69% complete.
+Reading data from 0x319800 --  70% complete.
+Reading data from 0x321000 --  71% complete.
+Reading data from 0x328800 --  72% complete.
+Reading data from 0x330800 --  73% complete.
+Reading data from 0x338000 --  74% complete.
+Reading data from 0x33f800 --  75% complete.
+Reading data from 0x347800 --  76% complete.
+Reading data from 0x34f000 --  77% complete.
+Reading data from 0x357000 --  78% complete.
+Reading data from 0x35e800 --  79% complete.
+Reading data from 0x366000 --  80% complete.
+Reading data from 0x36e000 --  81% complete.
+Reading data from 0x375800 --  82% complete.
+Reading data from 0x37d000 --  83% complete.
+Reading data from 0x385000 --  84% complete.
+Reading data from 0x38c800 --  85% complete.
+Reading data from 0x394000 --  86% complete.
+Reading data from 0x39c000 --  87% complete.
+Reading data from 0x3a3800 --  88% complete.
+Reading data from 0x3ab800 --  89% complete.
+Reading data from 0x3b3000 --  90% complete.
+Reading data from 0x3ba800 --  91% complete.
+Reading data from 0x3c2800 --  92% complete.
+Reading data from 0x3ca000 --  93% complete.
+Reading data from 0x3d1800 --  94% complete.
+Reading data from 0x3d9800 --  95% complete.
+Reading data from 0x3e1000 --  96% complete.
+Reading data from 0x3e8800 --  97% complete.
+Reading data from 0x3f0800 --  98% complete.
+Reading data from 0x3f8000 --  99% complete.
+Reading data from 0x3ff800 -- 100% complete.
+ 3145728 bytes read: OK
+
+NAND read: device 0 offset 0x400000, size 0x400000
+
+
+Reading data from 0x400000 --   0% complete.
+Reading data from 0x40a000 --   1% complete.
+Reading data from 0x414000 --   2% complete.
+Reading data from 0x41e800 --   3% complete.
+Reading data from 0x428800 --   4% complete.
+Reading data from 0x433000 --   5% complete.
+Reading data from 0x43d000 --   6% complete.
+Reading data from 0x447800 --   7% complete.
+Reading data from 0x451800 --   8% complete.
+Reading data from 0x45c000 --   9% complete.
+Reading data from 0x466000 --  10% complete.
+Reading data from 0x470800 --  11% complete.
+Reading data from 0x47a800 --  12% complete.
+Reading data from 0x485000 --  13% complete.
+Reading data from 0x48f000 --  14% complete.
+Reading data from 0x499800 --  15% complete.
+Reading data from 0x4a3800 --  16% complete.
+Reading data from 0x4ae000 --  17% complete.
+Reading data from 0x4b8000 --  18% complete.
+Reading data from 0x4c2800 --  19% complete.
+Reading data from 0x4cc800 --  20% complete.
+Reading data from 0x4d7000 --  21% complete.
+Reading data from 0x4e1000 --  22% complete.
+Reading data from 0x4eb800 --  23% complete.
+Reading data from 0x4f5800 --  24% complete.
+Reading data from 0x4ff800 --  25% complete.
+Reading data from 0x50a000 --  26% complete.
+Reading data from 0x514000 --  27% complete.
+Reading data from 0x51e800 --  28% complete.
+Reading data from 0x528800 --  29% complete.
+Reading data from 0x533000 --  30% complete.
+Reading data from 0x53d000 --  31% complete.
+Reading data from 0x547800 --  32% complete.
+Reading data from 0x551800 --  33% complete.
+Reading data from 0x55c000 --  34% complete.
+Reading data from 0x566000 --  35% complete.
+Reading data from 0x570800 --  36% complete.
+Reading data from 0x57a800 --  37% complete.
+Reading data from 0x585000 --  38% complete.
+Reading data from 0x58f000 --  39% complete.
+Reading data from 0x599800 --  40% complete.
+Reading data from 0x5a3800 --  41% complete.
+Reading data from 0x5ae000 --  42% complete.
+Reading data from 0x5b8000 --  43% complete.
+Reading data from 0x5c2800 --  44% complete.
+Reading data from 0x5cc800 --  45% complete.
+Reading data from 0x5d7000 --  46% complete.
+Reading data from 0x5e1000 --  47% complete.
+Reading data from 0x5eb800 --  48% complete.
+Reading data from 0x5f5800 --  49% complete.
+Reading data from 0x5ff800 --  50% complete.
+Reading data from 0x60a000 --  51% complete.
+Reading data from 0x614000 --  52% complete.
+Reading data from 0x61e800 --  53% complete.
+Reading data from 0x628800 --  54% complete.
+Reading data from 0x633000 --  55% complete.
+Reading data from 0x63d000 --  56% complete.
+Reading data from 0x647800 --  57% complete.
+Reading data from 0x651800 --  58% complete.
+Reading data from 0x65c000 --  59% complete.
+Reading data from 0x666000 --  60% complete.
+Reading data from 0x670800 --  61% complete.
+Reading data from 0x67a800 --  62% complete.
+Reading data from 0x685000 --  63% complete.
+Reading data from 0x68f000 --  64% complete.
+Reading data from 0x699800 --  65% complete.
+Reading data from 0x6a3800 --  66% complete.
+Reading data from 0x6ae000 --  67% complete.
+Reading data from 0x6b8000 --  68% complete.
+Reading data from 0x6c2800 --  69% complete.
+Reading data from 0x6cc800 --  70% complete.
+Reading data from 0x6d7000 --  71% complete.
+Reading data from 0x6e1000 --  72% complete.
+Reading data from 0x6eb800 --  73% complete.
+Reading data from 0x6f5800 --  74% complete.
+Reading data from 0x6ff800 --  75% complete.
+Reading data from 0x70a000 --  76% complete.
+Reading data from 0x714000 --  77% complete.
+Reading data from 0x71e800 --  78% complete.
+Reading data from 0x728800 --  79% complete.
+Reading data from 0x733000 --  80% complete.
+Reading data from 0x73d000 --  81% complete.
+Reading data from 0x747800 --  82% complete.
+Reading data from 0x751800 --  83% complete.
+Reading data from 0x75c000 --  84% complete.
+Reading data from 0x766000 --  85% complete.
+Reading data from 0x770800 --  86% complete.
+Reading data from 0x77a800 --  87% complete.
+Reading data from 0x785000 --  88% complete.
+Reading data from 0x78f000 --  89% complete.
+Reading data from 0x799800 --  90% complete.
+Reading data from 0x7a3800 --  91% complete.
+Reading data from 0x7ae000 --  92% complete.
+Reading data from 0x7b8000 --  93% complete.
+Reading data from 0x7c2800 --  94% complete.
+Reading data from 0x7cc800 --  95% complete.
+Reading data from 0x7d7000 --  96% complete.
+Reading data from 0x7e1000 --  97% complete.
+Reading data from 0x7eb800 --  98% complete.
+Reading data from 0x7f5800 --  99% complete.
+Reading data from 0x7ff800 -- 100% complete.
+ 4194304 bytes read: OK
+## Booting image at 00040000 ...
+   Image Name:   Linux-2.6.31.8
+   Created:      2014-11-18   0:24:43 UTC
+   Image Type:   ARM Linux Kernel Image (uncompressed)
+   Data Size:    2481368 Bytes =  2.4 MB
+   Load Address: 00008000
+   Entry Point:  00008000
+   Verifying Checksum ... OK
+OK
+## Loading Ramdisk Image at 00900000 ...
+   Image Name:   
+   Created:      2014-11-25  20:06:24 UTC
+   Image Type:   ARM Linux RAMDisk Image (bzip2 compressed)
+   Data Size:    2952765 Bytes =  2.8 MB
+   Load Address: 00000000
+   Entry Point:  00000000
+   Verifying Checksum ... OK
+
+Starting kernel ...
+
+Linux version 2.6.31.8 (soho@bsoho088.iomegacorp.com) (gcc version 4.6.3 (crosstool-NG 1.18.0) ) Mon Nov 17 19:24:39 EST 2014 v0.0.9 Mon Nov 17 19:24:39 EST 2014
+CPU: Feroceon 88FR131 [56251311] revision 1 (ARMv5TE), cr=00053977
+CPU: VIVT data cache, VIVT instruction cache
+Machine: Feroceon-KW
+Using UBoot passing parameters structure
+Memory policy: ECC disabled, Data cache writeback
+Built 1 zonelists in Zone order, mobility grouping off.  Total pages: 64960
+Kernel command line: console=ttyS0,115200 root=/dev/ram0 :::DB88FXX81:eth0:none mtdparts=nand_mtd:0x80000@0(uboot),0x20000@0xa0000(env),0x20000@0xc0000(env2),0x300000@0x100000(uImage),0x400000@0x400000(initrd),0x3f800000@0x800000(boot),1024m@0x0(flash)
+PID hash table entries: 1024 (order: 10, 4096 bytes)
+Dentry cache hash table entries: 32768 (order: 5, 131072 bytes)
+Inode-cache hash table entries: 16384 (order: 4, 65536 bytes)
+Memory: 256MB = 256MB total
+Memory: 244480KB available (4572K code, 365K data, 136K init, 0K highmem)
+Hierarchical RCU implementation.
+NR_IRQS:128
+Console: colour dummy device 80x30
+Calibrating delay loop... 1589.24 BogoMIPS (lpj=7946240)
+Security Framework initialized
+Mount-cache hash table entries: 512
+CPU: Testing write buffer coherency: ok
+xor: measuring software checksum speed
+   arm4regs  :  1446.800 MB/sec
+   8regs     :   867.600 MB/sec
+   32regs    :  1120.800 MB/sec
+xor: using function: arm4regs (1446.800 MB/sec)
+NET: Registered protocol family 16
+Feroceon L2: Enabling L2
+Feroceon L2: Cache support initialised.
+
+CPU Interface
+-------------
+SDRAM_CS0 ....base 00000000, size 256MB 
+SDRAM_CS1 ....disable
+SDRAM_CS2 ....disable
+SDRAM_CS3 ....disable
+PEX0_MEM ....base e0000000, size 128MB 
+PEX0_IO ....base f2000000, size   1MB 
+PEX1_MEM ....base e8000000, size 128MB 
+PEX1_IO ....base f2100000, size   1MB 
+INTER_REGS ....base f1000000, size   1MB 
+NFLASH_CS ....base fa000000, size   2MB 
+SPI_CS ....base f4000000, size  16MB 
+BOOT_ROM_CS ....no such
+DEV_BOOTCS ....no such
+CRYPT_ENG ....base f0000000, size   2MB 
+
+  Marvell Development Board (LSP Version KW_LSP_5.1.3_patch25)-- DB-88F6282A-BP  Soc: 88F6282 A1 LE
+
+ Detected Tclk 200000000 and SysClk 533333333 
+MV Buttons Device Load
+Marvell USB EHCI Host controller #0: c8040740
+PEX0 interface detected no Link.
+PEX1 interface detected no Link.
+PCI: bus0: Fast back to back transfers enabled
+PCI: bus1: Fast back to back transfers enabled
+bio: create slab <bio-0> at 0
+SCSI subsystem initialized
+usbcore: registered new interface driver usbfs
+usbcore: registered new interface driver hub
+usbcore: registered new device driver usb
+raid6: int32x1    126 MB/s
+raid6: int32x2    185 MB/s
+raid6: int32x4    172 MB/s
+raid6: int32x8    187 MB/s
+raid6: using algorithm int32x8 (187 MB/s)
+NET: Registered protocol family 2
+IP route cache hash table entries: 2048 (order: 1, 8192 bytes)
+TCP established hash table entries: 8192 (order: 4, 65536 bytes)
+TCP bind hash table entries: 8192 (order: 3, 32768 bytes)
+TCP: Hash tables configured (established 8192 bind 8192)
+TCP reno registered
+NET: Registered protocol family 1
+Trying to unpack rootfs image as initramfs...
+rootfs image is not initramfs (no cpio magic); looks like an initrd
+Freeing initrd memory: 2880K
+rtc mv_rtc: rtc core: registered kw-rtc as rtc0
+RTC registered
+XOR registered 4 channels
+XOR 2nd invalidate WA enabled
+cesadev_init(c000eca8)
+mvCesaInit: sessions=640, queue=64, pSram=f0000000
+MV Buttons Driver Load
+VFS: Disk quotas dquot_6.5.2
+Dquot-cache hash table entries: 1024 (order 0, 4096 bytes)
+squashfs: version 4.0 (2009/01/31) Phillip Lougher
+Registering unionfs 2.5.11 (for 2.6.31.14)
+Installing knfsd (copyright (C) 1996 okir@monad.swb.de).
+msgmni has been set to 483
+alg: No test for cipher_null (cipher_null-generic)
+alg: No test for ecb(cipher_null) (ecb-cipher_null)
+alg: No test for digest_null (digest_null-generic)
+alg: No test for compress_null (compress_null-generic)
+alg: No test for stdrng (krng)
+alg: No test for hmac(digest_null) (hmac(digest_null-generic))
+async_tx: api initialized (sync-only)
+Block layer SCSI generic (bsg) driver version 0.4 loaded (major 253)
+io scheduler noop registered
+io scheduler anticipatory registered (default)
+Serial: 8250/16550 driver, 4 ports, IRQ sharing disabled
+serial8250.0: ttyS0 at MMIO 0xf1012100 (irq = 34) is a 16550A
+console [ttyS0] enabled
+brd: module loaded
+loop: module loaded
+Integrated Sata device found
+IRQ 21/mvSata: IRQF_DISABLED is not guaranteed on shared IRQs
+scsi0 : Marvell SCSI to SATA adapter
+scsi1 : Marvell SCSI to SATA adapter
+Loading Marvell Ethernet Driver:
+  o Cached descriptors in DRAM
+  o DRAM SW cache-coherency
+  o 2 Giga ports supported
+  o Single RX Queue support - ETH_DEF_RXQ=0
+  o Single TX Queue support - ETH_DEF_TXQ=0
+  o TCP segmentation offload (TSO) supported
+  o Large Receive offload (LRO) supported
+  o Receive checksum offload supported
+  o Transmit checksum offload supported
+  o Proc tool API enabled
+  o Rx descripors: q0=256
+  o Tx descripors: q0=532
+  o Loading network interface(s):
+     o register under mv88fx_eth platform
+     o eth0, ifindex = 2, GbE port = 0
+
+Warning: Giga 1 is Powered Off
+
+tun: Universal TUN/TAP device driver, 1.6
+tun: (C) 1999-2004 Max Krasnyansky <maxk@qualcomm.com>
+mvSFlashInit ERROR: Unknown SPI flash device!
+ERROR: sflash_probe - Failed to initialize the SFlash.Using Hamming 1-bit ECC for NAND device
+NAND flash model -> K9K8G08U0D.
+NAND device: Manufacturer ID: 0xec, Chip ID: 0xd3 (Samsung NAND 1GiB 3,3V 8-bit)
+Scanning device for bad blocks
+Bad eraseblock 1295 at 0x00000a1e0000
+Bad eraseblock 6331 at 0x000031760000
+Bad eraseblock 6395 at 0x000031f60000
+7 cmdlinepart partitions found on MTD device nand_mtd
+Using command line partition definition
+Creating 7 MTD partitions on "nand_mtd":
+0x000000000000-0x000000080000 : "uboot"
+0x0000000a0000-0x0000000c0000 : "env"
+0x0000000c0000-0x0000000e0000 : "env2"
+0x000000100000-0x000000400000 : "uImage"
+0x000000400000-0x000000800000 : "initrd"
+0x000000800000-0x000040000000 : "boot"
+0x000000000000-0x000040000000 : "flash"
+ehci_hcd: USB 2.0 'Enhanced' Host Controller (EHCI) Driver
+ehci_marvell ehci_marvell.70059: Marvell Orion EHCI
+ehci_marvell ehci_marvell.70059: new USB bus registered, assigned bus number 1
+ehci_marvell ehci_marvell.70059: irq 19, io base 0xf1050100
+ehci_marvell ehci_marvell.70059: USB 2.0 started, EHCI 1.00
+usb usb1: configuration #1 chosen from 1 choice
+hub 1-0:1.0: USB hub found
+hub 1-0:1.0: 1 port detected
+ohci_hcd: USB 1.1 'Open' Host Controller (OHCI) Driver
+uhci_hcd: USB Universal Host Controller Interface driver
+usbcore: registered new interface driver usblp
+Initializing USB Mass Storage driver...
+usbcore: registered new interface driver usb-storage
+USB Mass Storage support registered.
+usbcore: registered new interface driver ums-datafab
+usbcore: registered new interface driver ums-freecom
+usbcore: registered new interface driver ums-jumpshot
+usbcore: registered new interface driver ums-sddr09
+usbcore: registered new interface driver ums-sddr55
+usbcore: registered new interface driver ums-usbat
+mice: PS/2 mouse device common for all mice
+i2c /dev entries driver
+adt7473 0-002e: adt7473 chip found
+iBoard_model 2
+md: linear personality registered for level -1
+md: raid0 personality registered for level 0
+md: raid1 personality registered for level 1
+md: raid10 personality registered for level 10
+md: raid6 personality registered for level 6
+md: raid5 personality registered for level 5
+md: raid4 personality registered for level 4
+device-mapper: uevent: version 1.0.3
+device-mapper: ioctl: 4.15.0-ioctl (2009-04-01) initialised: dm-devel@redhat.com
+dm_crypt using the OCF package.
+usbcore: registered new interface driver hiddev
+usbcore: registered new interface driver usbhid
+usbhid: v2.6:USB HID core driver
+TCP cubic registered
+NET: Registered protocol family 17
+NET: Registered protocol family 5
+RPC: Registered udp transport module.
+RPC: Registered tcp transport module.
+rtc mv_rtc: setting system clock to 2020-01-15 07:57:07 UTC (1579075027)
+md: Waiting for all devices to be available before autodetect
+md: If you don't use raid, use raid=noautodetect
+md: Autodetecting RAID arrays.
+md: Scanned 0 and added 0 devices.
+md: autorun ...
+md: ... autorun DONE.
+RAMDISK: bzip2 image found at block 0
+usb 1-1: new high speed USB device using ehci_marvell and address 2
+usb 1-1: configuration #1 chosen from 1 choice
+scsi2 : SCSI emulation for USB Mass Storage devices
+EXT2-fs warning: checktime reached, running e2fsck is recommended
+VFS: Mounted root (ext2 filesystem) on device 1:0.
+Looking for shell in cmdline: console=ttyS0,115200 root=/dev/ram0 :::DB88FXX81:eth0:none mtdparts=nand_mtd:0x80000@0(uboot),0x20000@0xa0000(env),0x20000@0xc0000(env2),0x300000@0x100000(uImage),0x400000@0x400000(initrd),0x3f800000@0x800000(boot),1024m@0x0(flash)
+Make node for mtd devices
+cat: can't open '/sys/class/block/sda/removable': No such file or directory
+cat: can't open '/sys/class/block/sdb/removable': No such file or directory
+FLASH based system detected
+Create fw_env.config in /etc
+Model name is ix2-ng
+UBI: attaching mtd5 to ubi0
+UBI: physical eraseblock size:   131072 bytes (128 KiB)
+UBI: logical eraseblock size:    129024 bytes
+UBI: smallest flash I/O unit:    2048
+UBI: sub-page size:              512
+UBI: VID header offset:          512 (aligned 512)
+UBI: data offset:                2048
+UBI: attached mtd5 to ubi0
+UBI: MTD device name:            "boot"
+UBI: MTD device size:            1016 MiB
+UBI: number of good PEBs:        8125
+UBI: number of bad PEBs:         3
+UBI: max. allowed volumes:       128
+UBI: wear-leveling threshold:    4096
+UBI: number of internal volumes: 1
+UBI: number of user volumes:     1
+UBI: available PEBs:             0
+UBI: total number of reserved PEBs: 8125
+UBI: number of PEBs reserved for bad PEB handling: 81
+UBI: max/mean erase counter: 3/2
+UBI: image sequence number: 0
+UBI: background thread "ubi_bgt0d" started, PID 612
+UBI device number 0, total 8125 LEBs (1048320000 bytes, 999.8 MiB), available 0 LEBs (0 bytes), LEB size 129024 bytes (126.0 KiB)
+mdadm: No devices to examine
+cat: can't open '/sys/class/block///size': No such file or directory
+mdadm: No devices to examine
+cat: can't open '/sys/class/block///size': No such file or directory
+Valid Disk 1 in md0: 
+Valid Disk 2 in md0: 
+USB Device node is /dev/sda1
+Checking to see the if the reset button is pressed or not
+scsi 2:0:0:0: Direct-Access                               1.03 PQ: 0 ANSI: 2
+sd 2:0:0:0: Attached scsi generic sg0 type 0
+sd 2:0:0:0: [sda] 15633408 512-byte logical blocks: (8.00 GB/7.45 GiB)
+sd 2:0:0:0: [sda] Write Protect is off
+sd 2:0:0:0: [sda] Assuming drive cache: write through
+sd 2:0:0:0: [sda] Assuming drive cache: write through
+ sda: sda1
+sd 2:0:0:0: [sda] Assuming drive cache: write through
+sd 2:0:0:0: [sda] Attached SCSI removable disk
+Checking for valid image on system
+UBIFS: mounted UBI device 0, volume 0, name "boot"
+UBIFS: file system size:   1035159552 bytes (1010898 KiB, 987 MiB, 8023 LEBs)
+UBIFS: journal size:       33546240 bytes (32760 KiB, 31 MiB, 260 LEBs)
+UBIFS: media format:       w4/r0 (latest is w4/r0)
+UBIFS: default compressor: lzo
+UBIFS: reserved for root:  4952683 bytes (4836 KiB)
+md: md0 stopped.
+mdadm: stopped /dev/md0
+mdadm: /dev/md0 not identified in config file.
+  No volume groups found
+Mount BFDlv to /mnt/boot on ix2-ng NAND
+e2fsck 1.42.5 (29-Jul-2012)
+ext2fs_check_if_mount: Can't check if filesystem is mounted due to missing mtab file while determining whether /dev/md0_vg/BFDlv is mounted.
+e2fsck: No such file or directory while trying to open /dev/md0_vg/BFDlv
+Possibly non-existent device?
+mount: mounting /dev/md0_vg/BFDlv on sysroot/mnt/boot failed: No such file or directory
+Copy dev node to /sysroot/dev
+Found Valid EMC Image in disk...
+Mounting apps image...
+Mounting config image...
+Check config filesystem
+e2fsck 1.42.5 (29-Jul-2012)
+ext2fs_check_if_mount: Can't check if filesystem is mounted due to missing mtab file while determining whether /dev/loop1 is mounted.
+Copying System.map...
+No need to create fw_env.config
+No need to create fw_env.config
+Constructing root filesystem...
+Bootstrapping ...
+rootdir=/
+table='/usr/local/cfg/device_table.txt'
+makedevs: line 42: chown failed for /bin/busybox: Read-only file system
+makedevs: line 49: regular file '/usr/share/udhcpc/default.script' does not exist: No such file or directory
+makedevs: line 55: Couldnt create node /dev/null: File exists
+makedevs: line 56: Couldnt create node /dev/zero: File exists
+makedevs: line 58: Couldnt create node /dev/urandom: File exists
+makedevs: line 61: Couldnt create node /dev/loop0: File exists
+makedevs: line 61: Couldnt create node /dev/loop1: File exists
+makedevs: line 61: Couldnt create node /dev/loop2: File exists
+makedevs: line 64: Couldnt create node /dev/console: File exists
+makedevs: line 66: Couldnt create node /dev/tty2: File exists
+makedevs: line 66: Couldnt create node /dev/tty3: File exists
+makedevs: line 66: Couldnt create node /dev/tty4: File exists
+makedevs: line 71: Couldnt create node /dev/ttyS0: File exists
+makedevs: line 71: Couldnt create node /dev/ttyS1: File exists
+makedevs: line 86: Couldnt create node /dev/mtd0: File exists
+makedevs: line 86: Couldnt create node /dev/mtd1: File exists
+makedevs: line 86: Couldnt create node /dev/mtd2: File exists
+makedevs: line 86: Couldnt create node /dev/mtd3: File exists
+makedevs: line 86: Couldnt create node /dev/mtd4: File exists
+makedevs: line 86: Couldnt create node /dev/mtd5: File exists
+makedevs: line 123: Couldnt create node /dev/sda: File exists
+makedevs: line 124: Couldnt create node /dev/sda1: File exists
+makedevs: line 125: Couldnt create node /dev/sdb: File exists
+makedevs: line 126: Couldnt create node /dev/sdb1: File exists
+makedevs: line 127: Couldnt create node /dev/sdc: File exists
+makedevs: line 128: Couldnt create node /dev/sdc1: File exists
+makedevs: line 190: Couldnt create node /dev/md0: File exists
+makedevs: line 191: Couldnt create node /dev/md1: File exists
+warning: failed to read mtab
+Loading ext4...
+Loading xfs...
+SGI XFS with ACLs, security attributes, large block/inode numbers, no debug enabled
+SGI XFS Quota Management subsystem
+Loading isofs...
+Loading udf...
+Loading ufsd...
+ufsd: module license 'Commercial product' taints kernel.
+Disabling lock debugging due to kernel taint
+ufsd: driver 8.5 (Nov 17 2014 19:43:18) LBD=ON with delayalloc with ioctl loaded at bf101000
+NTFS support included
+Hfs+/HfsX support included
+Built for: EMC_ix2_2Loading btusb...
+
+Bluetooth: Core ver 2.15
+NET: Registered protocol family 31
+Bluetooth: HCI device and connection manager initialized
+Bluetooth: HCI socket layer initialized
+Bluetooth: Generic Bluetooth USB driver ver 0.5
+usbcore: registered new interface driver btusb
+## Error: "hwdata" not defined
+Initialization complete.
+Freeing init memory: 136K
+
+INIT: version 2.88 booting
+
+Running file /etc/init.d/rcS
+Running file /etc/init.d/rc
+Running file /etc/rcS.d/S01glibc.sh
+Running file /etc/rcS.d/S02hostname.sh
+Running file /etc/rcS.d/S02mountkernfs.sh
+[....] Filesystem types '' and '/lib/init/rw' are not supported. Skipping mount. ...7[warn8 (warning).
+touch: cannot touch `/lib/init/rw/.ramfs': No such file or directory
+mkdir: cannot create directory `/lib/init/rw/sendsigs.omit.d/': No such file or directory
+[....] Filesystem types '' and '/proc' are not supported. Skipping mount. ...7[warn8 (warning).
+[....] Filesystem types '' and '/sys' are not supported. Skipping mount. ...7[warn8 (warning).
+[....] Filesystem types 'usbdevfs' and '/proc/bus/usb' are not supported. Skipping mount. ...7[warn8 (warning).
+Running file /etc/rcS.d/S03udev
+[....] Starting the hotplug events dispatcher: udevdudevd[1017]: specified group 'fuse' unknown
+
+
+udevd[1017]: invalid ENV attribute, 'DEVTYPE' can not be set /etc/udev/rules.d/60-persistent-storage.rules:27
+
+
+udevd[1017]: invalid ENV attribute, 'DEVTYPE' can not be set /etc/udev/rules.d/60-persistent-storage.rules:28
+
+
+udevd[1017]: specified group 'floppy' unknown
+
+
+udevd[1017]: specified group 'cdrom' unknown
+
+
+udevd[1017]: specified group 'tape' unknown
+
+
+udevd[1017]: specified group 'scanner' unknown
+
+
+udevd[1017]: specified group 'lp' unknown
+
+
+udevd[1017]: specified group 'plugdev' unknown
+
+
+udevd[1017]: specified group 'dialout' unknown
+
+
+udevd[1017]: specified group 'video' unknown
+
+
+udevd[1017]: specified group 'kmem' unknown
+
+
+udevd[1017]: specified group 'nvram' unknown
+
+
+udevd[1017]: specified group 'audio' unknown
+
+
+udevd[1017]: specified user 'tss' unknown
+
+
+udevd[1017]: specified group 'tss' unknown
+
+
+udevd[1017]: specified group 'kvm' unknown
+
+
+udevd[1017]: specified group 'rdma' unknown
+
+
+7[ ok 8.
+[....] Synthesizing the initial hotplug events...udevd[1053]: failed to execute '/lib/udev/vol_id' 'vol_id --export /dev/.tmp-block-8:0': No such file or directory
+
+
+udevd[1056]: failed to execute '/lib/udev/vol_id' 'vol_id --export /dev/.tmp-block-8:1': No such file or directory
+
+
+udevd[1045]: kernel-provided name 'usbdev1.1' and NAME= 'bus/usb/001/001' disagree, please use SYMLINK+= or change the kernel to provide the proper name
+
+
+udevd[1047]: kernel-provided name 'usbdev1.2' and NAME= 'bus/usb/001/002' disagree, please use SYMLINK+= or change the kernel to provide the proper name
+
+
+udevd[1076]: failed to execute '/lib/udev/vol_id' 'vol_id --export /dev/sda': No such file or directory
+
+
+7[ ok 8done.
+[....] Waiting for /dev to be fully populated...7[ ok 8done.
+Running file /etc/rcS.d/S04mountdevsubfs.sh
+[....] Filesystem types 'shmfs' and '/dev/shm' are not supported. Skipping mount. ...7[warn8 (warning).
+[....] Filesystem types '' and '/dev/pts' are not supported. Skipping mount. ...7[warn8 (warning).
+Running file /etc/rcS.d/S05bootlogd
+Running file /etc/rcS.d/S07hdparm
+[....] Setting parameters of disc: (none)7[ ok 8.
+Running file /etc/rcS.d/S08hwclockfirst.sh
+[info] Setting the system clock.
+Running file /etc/rcS.d/S11hwclock.sh
+[info] Setting the system clock.
+Running file /etc/rcS.d/S12mtab.sh
+Running file /etc/rcS.d/S18ifupdown-clean
+[....] Cleaning up ifupdown...7[ ok 8.
+Running file /etc/rcS.d/S20module-init-tools
+[....] Loading kernel modules...modprobe: unrecognized option '--list'
+7[ ok 8done.
+Running file /etc/rcS.d/S26lvm2
+[....] Setting up LVM Volume Groups  Reading all physical volumes.  This may take a while...
+  No volume groups found
+  No volume groups found
+  No volume groups found
+7[ ok 8.
+Running file /etc/rcS.d/S30checkfs.sh
+/etc/rcS.d/S30checkfs.sh: line 28: /lib/init/splash-functions-base: No such file or directory
+Running file /etc/rcS.d/S30procps
+[....] Setting kernel variables (/etc/sysctl.conf)...Running file /etc/rcS.d/S35mountall.sh
+[....] Mounting local filesystems...7[ ok 8done.
+[....] Activating swapfile swap...7[ ok 8done.
+Running file /etc/rcS.d/S36mountall-bootclean.sh
+Running file /etc/rcS.d/S36udev-mtab
+Running file /etc/rcS.d/S37mountoverflowtmp
+sed: can't read /usr/local/etc/dhcp3/dhclient.conf: No such file or directory
+Running file /etc/rcS.d/S39ifupdown
+[....] Setting up networking...7[ ok 8.
+Running file /etc/rcS.d/S40networking
+[....] Configuring network interfaces...7[ ok 8done.
+Running file /etc/rcS.d/S43portmap
+Running file /etc/rcS.d/S43rpcbind
+[....] Starting rpcbind daemon...7[ ok 8.
+Running file /etc/rcS.d/S44nfs-common
+[....] Starting NFS common utilities: statd7[FAIL8 failed!
+Running file /etc/rcS.d/S45mountnfs.sh
+Running file /etc/rcS.d/S46mountnfs-bootclean.sh
+Running file /etc/rcS.d/S55bootmisc.sh
+Running file /etc/rcS.d/S55urandom
+Running file /etc/rcS.d/S99stop-bootlogd-single
+
+INIT: cannot execute "
+INIT: Entering runlevel: 2
+
+Running file /etc/init.d/rc
+Running file /etc/rc2.d/S10rsyslog
+[....] Starting enhanced syslogd: rsyslogd7[ ok 8.
+Running file /etc/rc2.d/S12dbus
+[....] Removing stale PID file /var/run/dbus/pid.7[ ok 8.
+Failed to open "/etc/machine-id": No such file or directory
+Running file /etc/rc2.d/S20nfs-common
+[....] Starting NFS common utilities: statd7[FAIL8 failed!
+Running file /etc/rc2.d/S20nfs-kernel-server
+[....] Not starting NFS kernel daemon: no exports. ...7[warn8 (warning).
+Running file /etc/rc2.d/S20rsync
+Running file /etc/rc2.d/S20smartmontools
+[....] Not starting S.M.A.R.T. daemon smartd, disabled via /etc/default/smartmontools ...7[warn8 (warning).
+Running file /etc/rc2.d/S20sysfsutils
+[....] Setting sysfs variables...7[ ok 8.
+Running file /etc/rc2.d/S23ntp
+[....] Starting NTP server: ntpdRunning file /etc/rc2.d/S25bluetooth
+Starting netplugd...
+eth0: link down
+eth0: started
+eth0: link up, full duplex, speed 1 Gbps
+ln: failed to create symbolic link `/etc/samba/smb.conf': File exists
+ln: failed to create symbolic link `/tmp/samba/account_policy.tdb': File exists
+ln: failed to create symbolic link `/tmp/samba/group_mapping.tdb': File exists
+ln: failed to create symbolic link `/tmp/samba/login_cache.tdb': File exists
+ln: failed to create symbolic link `/tmp/samba/netsamlogon_cache.tdb': File exists
+ln: failed to create symbolic link `/tmp/samba/ntdrivers.tdb': File exists
+ln: failed to create symbolic link `/tmp/samba/ntforms.tdb': File exists
+ln: failed to create symbolic link `/tmp/samba/ntprinters.tdb': File exists
+ln: failed to create symbolic link `/tmp/samba/share_info.tdb': File exists
+ln: failed to create symbolic link `/tmp/samba/winbindd_idmap.tdb': File exists
+ln: failed to create symbolic link `/tmp/samba/winbindd_cache.tdb': File exists
+ln: failed to create symbolic link `/tmp/samba/wins.dat': File exists
+ln: failed to create symbolic link `/tmp/samba/locking.tdb': File exists
+Starting sshd: OK
+hostnamed begin to start...
+Checking Netwrok interface link status...
+Network Link is Available...
+IP obtained
+## Error: "hwdata" not defined
+hostnamed finished
+IP obtaining in progress...
+IP obtained
+Starting executord
+Done.
+cups: started scheduler.
+Running file /etc/rc2.d/S99rc.local
+Running file /etc/rc2.d/S99rmnologin
+Running file /etc/rc2.d/S99stop-bootlogd
+
+
+
+Welcome to CenterPoint.
+iomega login: 

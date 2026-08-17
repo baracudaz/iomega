@@ -1,0 +1,47 @@
+         __  __                      _ _
+        |  \/  | __ _ _ ____   _____| | |
+        | |\/| |/ _` | '__\ \ / / _ \ | |
+        | |  | | (_| | |   \ V /  __/ | |
+        |_|  |_|\__,_|_|    \_/ \___|_|_|
+ _   _     ____              _
+| | | |   | __ )  ___   ___ | |_ 
+| | | |___|  _ \ / _ \ / _ \| __| 
+| |_| |___| |_) | (_) | (_) | |_ 
+ \___/    |____/ \___/ \___/ \__|  ** ix2-nand ** ** uboot_ver:0.0.8 **
+
+ ** MARVELL BOARD: DB-88F6282A-BP LE 
+
+U-Boot 1.1.4 (Oct 28 2011 - 15:19:29) Marvell version: 3.6.1 - EMC
+
+U-Boot code: 00600000 -> 0067FFF0  BSS: -> 006CFB00
+
+Soc: 88F6282 A1 CPU running @ 1600Mhz L2 running @ 533Mhz
+SysClock = 533Mhz , TClock = 200Mhz 
+
+DRAM (DDR3) CAS Latency = 7 tRP = 7 tRAS = 20 tRCD=7
+DRAM CS[0] base 0x00000000   size 256MB 
+DRAM Total size 256MB  16bit width
+Addresses 8M - 0M are saved for the U-Boot usage.
+Mem malloc Initialization (8M - 7M): Done
+NAND:1024 MB
+Found ADT7473, program PWM1 ... OK
+Flash:  0 kB
+
+Marvell Serial ATA Adapter
+Integrated Sata device found
+
+
+CPU : Marvell Feroceon (Rev 1)
+Found kernel at 0x100000
+Found initrd at 0x400000
+
+Streaming disabled 
+Write allocate disabled
+
+
+USB 0: host mode
+PEX 0: interface detected no Link.
+PEX 1: interface detected no Link.
+Net:   egiga0 [PRIME]
+Hit any key to stop autoboot:  3 ... 2 ... 1 ... 0 
+Marvell>> 

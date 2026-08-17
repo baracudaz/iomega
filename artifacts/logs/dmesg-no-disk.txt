@@ -1,0 +1,271 @@
+root@iomega:/# dmesg 
+Linux version 2.6.31.8 (soho@bsoho088.iomegacorp.com) (gcc version 4.6.3 (crosstool-NG 1.18.0) ) Mon Nov 17 19:24:39 EST 2014 v0.0.9 Mon Nov 17 19:24:39 EST 2014
+CPU: Feroceon 88FR131 [56251311] revision 1 (ARMv5TE), cr=00053977
+CPU: VIVT data cache, VIVT instruction cache
+Machine: Feroceon-KW
+Using UBoot passing parameters structure
+Memory policy: ECC disabled, Data cache writeback
+On node 0 totalpages: 65536
+free_area_init_node: node 0, pgdat c04d1140, node_mem_map c0bd1000
+  Normal zone: 576 pages used for memmap
+  Normal zone: 0 pages reserved
+  Normal zone: 64960 pages, LIFO batch:15
+Built 1 zonelists in Zone order, mobility grouping off.  Total pages: 64960
+Kernel command line: console=ttyS0,115200 root=/dev/ram0 :::DB88FXX81:eth0:none mtdparts=nand_mtd:0x80000@0(uboot),0x20000@0xa0000(env),0x20000@0xc0000(env2),0x300000@0x100000(uImage),0x400000@0x400000(initrd),0x3f800000@0x800000(boot),1024m@0x0(flash)
+PID hash table entries: 1024 (order: 10, 4096 bytes)
+Dentry cache hash table entries: 32768 (order: 5, 131072 bytes)
+Inode-cache hash table entries: 16384 (order: 4, 65536 bytes)
+Memory: 256MB = 256MB total
+Memory: 244480KB available (4572K code, 365K data, 136K init, 0K highmem)
+Hierarchical RCU implementation.
+NR_IRQS:128
+Console: colour dummy device 80x30
+Calibrating delay loop... 1589.24 BogoMIPS (lpj=7946240)
+Security Framework initialized
+Mount-cache hash table entries: 512
+CPU: Testing write buffer coherency: ok
+xor: measuring software checksum speed
+   arm4regs  :  1446.800 MB/sec
+   8regs     :   867.600 MB/sec
+   32regs    :  1120.800 MB/sec
+xor: using function: arm4regs (1446.800 MB/sec)
+NET: Registered protocol family 16
+Feroceon L2: Enabling L2
+Feroceon L2: Cache support initialised.
+
+CPU Interface
+-------------
+SDRAM_CS0 ....base 00000000, size 256MB 
+SDRAM_CS1 ....disable
+SDRAM_CS2 ....disable
+SDRAM_CS3 ....disable
+PEX0_MEM ....base e0000000, size 128MB 
+PEX0_IO ....base f2000000, size   1MB 
+PEX1_MEM ....base e8000000, size 128MB 
+PEX1_IO ....base f2100000, size   1MB 
+INTER_REGS ....base f1000000, size   1MB 
+NFLASH_CS ....base fa000000, size   2MB 
+SPI_CS ....base f4000000, size  16MB 
+BOOT_ROM_CS ....no such
+DEV_BOOTCS ....no such
+CRYPT_ENG ....base f0000000, size   2MB 
+
+  Marvell Development Board (LSP Version KW_LSP_5.1.3_patch25)-- DB-88F6282A-BP  Soc: 88F6282 A1 LE
+
+ Detected Tclk 200000000 and SysClk 533333333 
+MV Buttons Device Load
+Marvell USB EHCI Host controller #0: c8040740
+PEX0 interface detected no Link.
+PEX1 interface detected no Link.
+PCI: bus0: Fast back to back transfers enabled
+PCI: bus1: Fast back to back transfers enabled
+bio: create slab <bio-0> at 0
+SCSI subsystem initialized
+usbcore: registered new interface driver usbfs
+usbcore: registered new interface driver hub
+usbcore: registered new device driver usb
+raid6: int32x1    126 MB/s
+raid6: int32x2    185 MB/s
+raid6: int32x4    172 MB/s
+raid6: int32x8    187 MB/s
+raid6: using algorithm int32x8 (187 MB/s)
+NET: Registered protocol family 2
+IP route cache hash table entries: 2048 (order: 1, 8192 bytes)
+TCP established hash table entries: 8192 (order: 4, 65536 bytes)
+TCP bind hash table entries: 8192 (order: 3, 32768 bytes)
+TCP: Hash tables configured (established 8192 bind 8192)
+TCP reno registered
+NET: Registered protocol family 1
+Trying to unpack rootfs image as initramfs...
+rootfs image is not initramfs (no cpio magic); looks like an initrd
+Freeing initrd memory: 2880K
+rtc mv_rtc: rtc core: registered kw-rtc as rtc0
+RTC registered
+XOR registered 4 channels
+XOR 2nd invalidate WA enabled
+cesadev_init(c000eca8)
+mvCesaInit: sessions=640, queue=64, pSram=f0000000
+MV Buttons Driver Load
+VFS: Disk quotas dquot_6.5.2
+Dquot-cache hash table entries: 1024 (order 0, 4096 bytes)
+squashfs: version 4.0 (2009/01/31) Phillip Lougher
+Registering unionfs 2.5.11 (for 2.6.31.14)
+Installing knfsd (copyright (C) 1996 okir@monad.swb.de).
+msgmni has been set to 483
+alg: No test for cipher_null (cipher_null-generic)
+alg: No test for ecb(cipher_null) (ecb-cipher_null)
+alg: No test for digest_null (digest_null-generic)
+alg: No test for compress_null (compress_null-generic)
+alg: No test for stdrng (krng)
+alg: No test for hmac(digest_null) (hmac(digest_null-generic))
+async_tx: api initialized (sync-only)
+Block layer SCSI generic (bsg) driver version 0.4 loaded (major 253)
+io scheduler noop registered
+io scheduler anticipatory registered (default)
+Serial: 8250/16550 driver, 4 ports, IRQ sharing disabled
+serial8250.0: ttyS0 at MMIO 0xf1012100 (irq = 34) is a 16550A
+console [ttyS0] enabled
+brd: module loaded
+loop: module loaded
+Integrated Sata device found
+IRQ 21/mvSata: IRQF_DISABLED is not guaranteed on shared IRQs
+scsi0 : Marvell SCSI to SATA adapter
+scsi1 : Marvell SCSI to SATA adapter
+Loading Marvell Ethernet Driver:
+  o Cached descriptors in DRAM
+  o DRAM SW cache-coherency
+  o 2 Giga ports supported
+  o Single RX Queue support - ETH_DEF_RXQ=0
+  o Single TX Queue support - ETH_DEF_TXQ=0
+  o TCP segmentation offload (TSO) supported
+  o Large Receive offload (LRO) supported
+  o Receive checksum offload supported
+  o Transmit checksum offload supported
+  o Proc tool API enabled
+  o Rx descripors: q0=256
+  o Tx descripors: q0=532
+  o Loading network interface(s):
+     o register under mv88fx_eth platform
+     o eth0, ifindex = 2, GbE port = 0
+
+Warning: Giga 1 is Powered Off
+
+tun: Universal TUN/TAP device driver, 1.6
+tun: (C) 1999-2004 Max Krasnyansky <maxk@qualcomm.com>
+mvSFlashInit ERROR: Unknown SPI flash device!
+ERROR: sflash_probe - Failed to initialize the SFlash.Using Hamming 1-bit ECC for NAND device
+NAND flash model -> K9K8G08U0D.
+NAND device: Manufacturer ID: 0xec, Chip ID: 0xd3 (Samsung NAND 1GiB 3,3V 8-bit)
+Scanning device for bad blocks
+Bad eraseblock 1295 at 0x00000a1e0000
+Bad eraseblock 6331 at 0x000031760000
+Bad eraseblock 6395 at 0x000031f60000
+7 cmdlinepart partitions found on MTD device nand_mtd
+Using command line partition definition
+Creating 7 MTD partitions on "nand_mtd":
+0x000000000000-0x000000080000 : "uboot"
+0x0000000a0000-0x0000000c0000 : "env"
+0x0000000c0000-0x0000000e0000 : "env2"
+0x000000100000-0x000000400000 : "uImage"
+0x000000400000-0x000000800000 : "initrd"
+0x000000800000-0x000040000000 : "boot"
+0x000000000000-0x000040000000 : "flash"
+ehci_hcd: USB 2.0 'Enhanced' Host Controller (EHCI) Driver
+ehci_marvell ehci_marvell.70059: Marvell Orion EHCI
+ehci_marvell ehci_marvell.70059: new USB bus registered, assigned bus number 1
+ehci_marvell ehci_marvell.70059: irq 19, io base 0xf1050100
+ehci_marvell ehci_marvell.70059: USB 2.0 started, EHCI 1.00
+usb usb1: configuration #1 chosen from 1 choice
+hub 1-0:1.0: USB hub found
+hub 1-0:1.0: 1 port detected
+ohci_hcd: USB 1.1 'Open' Host Controller (OHCI) Driver
+uhci_hcd: USB Universal Host Controller Interface driver
+usbcore: registered new interface driver usblp
+Initializing USB Mass Storage driver...
+usbcore: registered new interface driver usb-storage
+USB Mass Storage support registered.
+usbcore: registered new interface driver ums-datafab
+usbcore: registered new interface driver ums-freecom
+usbcore: registered new interface driver ums-jumpshot
+usbcore: registered new interface driver ums-sddr09
+usbcore: registered new interface driver ums-sddr55
+usbcore: registered new interface driver ums-usbat
+mice: PS/2 mouse device common for all mice
+i2c /dev entries driver
+adt7473 0-002e: adt7473 chip found
+iBoard_model 2
+md: linear personality registered for level -1
+md: raid0 personality registered for level 0
+md: raid1 personality registered for level 1
+md: raid10 personality registered for level 10
+md: raid6 personality registered for level 6
+md: raid5 personality registered for level 5
+md: raid4 personality registered for level 4
+device-mapper: uevent: version 1.0.3
+device-mapper: ioctl: 4.15.0-ioctl (2009-04-01) initialised: dm-devel@redhat.com
+dm_crypt using the OCF package.
+usbcore: registered new interface driver hiddev
+usbcore: registered new interface driver usbhid
+usbhid: v2.6:USB HID core driver
+TCP cubic registered
+NET: Registered protocol family 17
+NET: Registered protocol family 5
+RPC: Registered udp transport module.
+RPC: Registered tcp transport module.
+rtc mv_rtc: setting system clock to 2020-01-15 07:57:07 UTC (1579075027)
+md: Waiting for all devices to be available before autodetect
+md: If you don't use raid, use raid=noautodetect
+md: Autodetecting RAID arrays.
+md: Scanned 0 and added 0 devices.
+md: autorun ...
+md: ... autorun DONE.
+RAMDISK: bzip2 image found at block 0
+usb 1-1: new high speed USB device using ehci_marvell and address 2
+usb 1-1: configuration #1 chosen from 1 choice
+scsi2 : SCSI emulation for USB Mass Storage devices
+usb-storage: device found at 2
+usb-storage: waiting for device to settle before scanning
+EXT2-fs warning: checktime reached, running e2fsck is recommended
+VFS: Mounted root (ext2 filesystem) on device 1:0.
+UBI: attaching mtd5 to ubi0
+UBI: physical eraseblock size:   131072 bytes (128 KiB)
+UBI: logical eraseblock size:    129024 bytes
+UBI: smallest flash I/O unit:    2048
+UBI: sub-page size:              512
+UBI: VID header offset:          512 (aligned 512)
+UBI: data offset:                2048
+UBI: attached mtd5 to ubi0
+UBI: MTD device name:            "boot"
+UBI: MTD device size:            1016 MiB
+UBI: number of good PEBs:        8125
+UBI: number of bad PEBs:         3
+UBI: max. allowed volumes:       128
+UBI: wear-leveling threshold:    4096
+UBI: number of internal volumes: 1
+UBI: number of user volumes:     1
+UBI: available PEBs:             0
+UBI: total number of reserved PEBs: 8125
+UBI: number of PEBs reserved for bad PEB handling: 81
+UBI: max/mean erase counter: 3/2
+UBI: image sequence number: 0
+UBI: background thread "ubi_bgt0d" started, PID 612
+scsi 2:0:0:0: Direct-Access                               1.03 PQ: 0 ANSI: 2
+sd 2:0:0:0: Attached scsi generic sg0 type 0
+usb-storage: device scan complete
+sd 2:0:0:0: [sda] 15633408 512-byte logical blocks: (8.00 GB/7.45 GiB)
+sd 2:0:0:0: [sda] Write Protect is off
+sd 2:0:0:0: [sda] Mode Sense: 03 00 00 00
+sd 2:0:0:0: [sda] Assuming drive cache: write through
+sd 2:0:0:0: [sda] Assuming drive cache: write through
+ sda: sda1
+sd 2:0:0:0: [sda] Assuming drive cache: write through
+sd 2:0:0:0: [sda] Attached SCSI removable disk
+UBIFS: mounted UBI device 0, volume 0, name "boot"
+UBIFS: file system size:   1035159552 bytes (1010898 KiB, 987 MiB, 8023 LEBs)
+UBIFS: journal size:       33546240 bytes (32760 KiB, 31 MiB, 260 LEBs)
+UBIFS: media format:       w4/r0 (latest is w4/r0)
+UBIFS: default compressor: lzo
+UBIFS: reserved for root:  4952683 bytes (4836 KiB)
+md: md0 stopped.
+SGI XFS with ACLs, security attributes, large block/inode numbers, no debug enabled
+SGI XFS Quota Management subsystem
+ufsd: module license 'Commercial product' taints kernel.
+Disabling lock debugging due to kernel taint
+ufsd: driver 8.5 (Nov 17 2014 19:43:18) LBD=ON with delayalloc with ioctl loaded at bf101000
+NTFS support included
+Hfs+/HfsX support included
+Built for: EMC_ix2_2
+Bluetooth: Core ver 2.15
+NET: Registered protocol family 31
+Bluetooth: HCI device and connection manager initialized
+Bluetooth: HCI socket layer initialized
+Bluetooth: Generic Bluetooth USB driver ver 0.5
+usbcore: registered new interface driver btusb
+Freeing init memory: 136K
+eth0: link down
+eth0: started
+eth0: link up, full duplex, speed 1 Gbps
+eth0: stopped
+eth0: link down
+eth0: started
+eth0: link up, full duplex, speed 1 Gbps
