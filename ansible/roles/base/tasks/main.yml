@@ -1,0 +1,20 @@
+---
+- name: Install base utility packages
+  ansible.builtin.apt:
+    name:
+      - rsync
+      - smartmontools
+      - lm-sensors
+    state: present
+    update_cache: true
+    cache_valid_time: 3600
+
+- name: Set hostname
+  ansible.builtin.hostname:
+    name: iomega
+
+- name: Ensure /etc/hosts has matching hostname entry
+  ansible.builtin.lineinfile:
+    path: /etc/hosts
+    regexp: '^127\.0\.1\.1\s'
+    line: "127.0.1.1\tiomega"

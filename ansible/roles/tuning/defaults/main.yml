@@ -1,0 +1,4 @@
+---
+tuning_journald_max_use: 200M
+tuning_vm_swappiness: 10
+tuning_raid_resync_min_kbps: 10000

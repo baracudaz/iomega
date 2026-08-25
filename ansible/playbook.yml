@@ -1,0 +1,9 @@
+---
+- name: Configure Iomega ix2-dl Debian NAS
+  hosts: iomega
+  become: true
+  roles:
+    - base
+    - swap
+    - security
+    - tuning

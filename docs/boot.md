@@ -12,12 +12,12 @@ internal SATA disk (software RAID1, degraded/single-disk), booted via the stock 
    `fdisk`/`e2fsprogs` — it already knows how to detect the SATA controller and set up software
    RAID.
 3. Partition layout (MBR, not GPT):
-   - `sda1` — 500MB, **plain ext2, NOT RAID** (U-Boot can't read through RAID metadata), mounted
+   + `sda1` — 500MB, **plain ext2, NOT RAID** (U-Boot can't read through RAID metadata), mounted
      `/boot`.
-   - `sda5` — 20GB, "physical volume for RAID" → degraded RAID1 (`md0`) → ext4, mounted `/`.
-   - `sda6` — remainder (~980GB), same pattern → degraded RAID1 (`md1`) → ext4, mounted
+   + `sda5` — 20GB, "physical volume for RAID" → degraded RAID1 (`md0`) → ext4, mounted `/`.
+   + `sda6` — remainder (~980GB), same pattern → degraded RAID1 (`md1`) → ext4, mounted
      `/srv/data`.
-   - When creating each RAID1 array in `partman`'s "Configure software RAID", the UI insists you
+   + When creating each RAID1 array in `partman`'s "Configure software RAID", the UI insists you
      "must select exactly 2" devices — selecting only the 1 available device is accepted anyway,
      producing a working degraded array. Add the second physical disk later with `mdadm --add`.
 4. Decline the installer's own bootloader step (flash-kernel doesn't support this board) — the
@@ -73,12 +73,14 @@ device holds `/`) — `root=UUID=...` is more robust than a device name, which c
    kernel silently overwrites the ramdisk in RAM while decompressing/expanding itself. U-Boot's own
    image checksum verification happens *before* this and reports "OK" for both images, so the
    corruption is invisible until the kernel panics moments later with:
+
    ```
    Kernel panic - not syncing: VFS: Unable to mount root fs on unknown-block(0,0)
    ...
    panic from mount_root_generic
    mount_root_generic from prepare_namespace
    ```
+
    This is the kernel's own fallback path when the initramfs was never actually unpacked — it
    happens even with `rdinit=/bin/sh` and no `root=` at all, which is the tell that the initrd
    itself never made it. The fix (per
@@ -94,13 +96,50 @@ device holds `/`) — `root=UUID=...` is more robust than a device name, which c
    stored. (This can accidentally *run* the boot sequence right there at the prompt instead of just
    setting the variable — harmless, but confusing.)
 
+## NAND flash — deliberately left untouched
+
+This device has **no serial-recovery fallback**: `kwboot` doesn't work here because the serial
+header is wired to UART1, not the UART0 the Kirkwood boot ROM listens to for recovery (per
+[forum.doozan.com](https://forum.doozan.com/read.php?2,123034)). That makes the onboard U-Boot
+binary and its environment the only thing standing between a working device and one that needs
+disassembly to recover, so nothing here gets touched without a specific reason.
+
+Stock NAND MTD layout (confirmed from `artifacts/logs/printenv.txt`, `nandconfig.txt`, `boot.txt`,
+and both `dmesg-*.txt` — all agree exactly):
+
+| Partition | Offset | Size | Status |
+| --- | --- | --- | --- |
+| `uboot` | 0x0 | 512KB | bootloader — never touched |
+| `env` | 0xa0000 | 128KB | U-Boot environment — **actively used**, holds our `bootcmd`/`bootcmd_sata` |
+| `env2` | 0xc0000 | 128KB | redundant/backup env |
+| `uImage` | 0x100000 | 3MB | stock kernel (2.6.31.8) — untouched |
+| `initrd` | 0x400000 | 4MB | stock initrd — untouched |
+| `boot` | 0x800000 | ~1016MB | stock rootfs (UBI/UBIFS) — untouched |
+
+Only `env`/`env2` are ever written (via `saveenv`). The kernel/initrd/rootfs partitions still hold
+the original, unmodified stock Iomega/EMC firmware — this is deliberate, not an oversight: it means
+the stock firmware is a ready emergency fallback if the SATA-disk boot chain above ever breaks,
+reachable with no NAND reflashing at all.
+
+**To revert to stock firmware** (e.g. `bootcmd_sata` stops working and needs debugging from a known
+state), restore the original `bootcmd` and save:
+
+```bash
+setenv bootcmd 'run loadzimage; run loadinitrd; run mk_mtdparts; setenv bootargs $(console) $(bootargs_root) $(bootargs_end) $(mtdparts); bootm 0x40000 0x900000'
+saveenv
+```
+
+(Exact value copied from `artifacts/logs/printenv.txt`, captured before any changes were made to
+this device.) Then power-cycle — it boots the original Iomega firmware from NAND, unrelated to
+whatever state the SATA disk or its `bootcmd_sata` is in.
+
 ## Base Setup
 
-- [forum.doozan.com](https://forum.doozan.com/read.php?2,12096)
-- [forum.doozan.com](https://forum.doozan.com/read.php?2,35331)
-- [https://minaret.biz/tips/ix2/index.html#introduction]
++ [forum.doozan.com](https://forum.doozan.com/read.php?2,12096)
++ [forum.doozan.com](https://forum.doozan.com/read.php?2,35331)
++ <https://minaret.biz/tips/ix2/index.html#introduction>
 
 ## Swap
 
-- [Linuxize: Add Swap Space on Debian 10](https://linuxize.com/post/how-to-add-swap-space-on-debian-10/)
-- [DigitalOcean: Add Swap Space on Debian 10](https://www.digitalocean.com/community/tutorials/how-to-add-swap-space-on-debian-10)
++ [Linuxize: Add Swap Space on Debian 10](https://linuxize.com/post/how-to-add-swap-space-on-debian-10/)
++ [DigitalOcean: Add Swap Space on Debian 10](https://www.digitalocean.com/community/tutorials/how-to-add-swap-space-on-debian-10)
