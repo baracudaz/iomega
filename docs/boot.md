@@ -65,6 +65,7 @@ run bootcmd_sata
 
 - [forum.doozan.com](https://forum.doozan.com/read.php?2,12096)
 - [forum.doozan.com](https://forum.doozan.com/read.php?2,35331)
+- [https://minaret.biz/tips/ix2/index.html#introduction]
 
 ## Swap
 
