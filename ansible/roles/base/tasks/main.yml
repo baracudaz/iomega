@@ -6,9 +6,29 @@
       - smartmontools
       - lm-sensors
       - gnupg
+      - u-boot-tools
     state: present
     update_cache: true
     cache_valid_time: 3600
+
+# The package ships only an example config (fw_env.config.example-like content under
+# /usr/share/doc/) — /etc/fw_env.config itself doesn't exist by default and must be
+# authored per-board. This box's NAND is already partitioned into separate MTD
+# devices by the kernel (see `cat /proc/mtd`: mtd1=uboot_env, mtd2=uboot_env2), so
+# each env copy starts at offset 0 of its own device — NOT at its absolute
+# whole-flash byte offset (0xa0000/0xc0000, see docs/boot.md's NAND MTD table),
+# which is what you'd use if fw_printenv addressed the raw undivided flash instead.
+# Confirmed live: a config using the whole-flash offsets against these
+# partition-relative devices fails outright ("Cannot read environment").
+# fw_env.config's columns are tab-separated by format convention, not an accidental tab.
+- name: Configure fw_printenv/fw_setenv against the correct MTD env partitions  # noqa: no-tabs
+  ansible.builtin.copy:
+    dest: /etc/fw_env.config
+    mode: '0644'
+    content: |
+      # MTD device name	Device offset	Env. size	Flash sector size
+      /dev/mtd1	0x0	0x20000	0x20000
+      /dev/mtd2	0x0	0x20000	0x20000
 
 - name: Set hostname
   ansible.builtin.hostname:

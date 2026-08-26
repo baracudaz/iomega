@@ -213,6 +213,42 @@ saveenv
 this device.) Then power-cycle — it boots the original Iomega firmware from NAND, unrelated to
 whatever state the SATA disk or its `bootcmd_sata` is in.
 
+### Reading/writing the U-Boot environment from Linux (`fw_printenv`/`fw_setenv`)
+
+No need to reach for the serial console for routine environment inspection or edits — `u-boot-tools`
+(installed by the `base` Ansible role) provides real `fw_printenv`/`fw_setenv` binaries, properly
+built for this system's actual libc (unlike bodhi's old static binpack tools intended for the
+*stock* firmware's minimal userspace — see
+[forum.doozan.com](https://forum.doozan.com/read.php?3,27280), which even shows a GLIBC-version
+mismatch bug report for that exact scenario; not a concern here since this is just the normal
+Debian-packaged tool).
+
+The one thing that has to be right is `/etc/fw_env.config` — **do not use the whole-flash absolute
+offsets from the MTD table above** (`env`@0xa0000, `env2`@0xc0000). This kernel already exposes
+each NAND partition as its own MTD device node (`cat /proc/mtd`: `mtd1`=`uboot_env`,
+`mtd2`=`uboot_env2`), so each one starts at offset 0 of *itself*, not of the whole chip. A config
+using the absolute offsets against these partition-relative devices fails outright ("Cannot read
+environment") — confirmed the hard way. The correct config (what the `base` role deploys):
+
+```
+# MTD device name	Device offset	Env. size	Flash sector size
+/dev/mtd1	0x0	0x20000	0x20000
+/dev/mtd2	0x0	0x20000	0x20000
+```
+
+Verified both directions: `fw_printenv` reads back `bootcmd`/`bootcmd_sata` byte-for-byte matching
+what was set via serial, and a disposable `fw_setenv claude_test hello` / `fw_setenv claude_test`
+round-trip was cross-checked against the real U-Boot prompt over serial before trusting it for
+anything real — worth repeating that kind of check after any config change here, given this device
+has no serial-recovery fallback if the environment ever gets corrupted.
+
+Serial console is still needed for the one thing `fw_setenv` can't do: test-run an *unpersisted*
+`bootcmd_sata` change (`run bootcmd_sata` at the prompt) before committing to it. `fw_setenv`
+writes directly to NAND immediately — there's no "try before you save" step like U-Boot's own
+`setenv` (RAM-only) → `saveenv` (persist) split. Use `fw_setenv` for variables you're already
+confident in (or just reading current values); use serial for anything touching the boot chain
+itself.
+
 ## Base Setup
 
 + [forum.doozan.com](https://forum.doozan.com/read.php?2,12096)
