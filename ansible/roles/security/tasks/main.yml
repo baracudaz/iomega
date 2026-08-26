@@ -52,13 +52,21 @@
   when: "'Status: active' not in security_ufw_status.stdout"
   changed_when: true
 
-- name: Configure unattended-upgrades for security updates only
+- name: Configure unattended-upgrades origins
   ansible.builtin.copy:
     dest: /etc/apt/apt.conf.d/50unattended-upgrades-local
     mode: '0644'
     content: |
+      // bookworm-security dropped armel from its supported architectures once
+      // bookworm became oldstable (confirmed via the live Release file:
+      // https://security.debian.org/debian-security/dists/bookworm-security/Release
+      // lists only amd64/arm64/armhf/i386/ppc64el) — this line is kept in case
+      // that ever changes, but currently matches zero packages on this box.
+      // bookworm-updates is the only channel still actually delivering
+      // anything here; it's urgent/time-sensitive fixes, not CVE patches.
       Unattended-Upgrade::Origins-Pattern {
               "origin=Debian,codename=${distro_codename}-security";
+              "origin=Debian,codename=${distro_codename}-updates";
       };
       Unattended-Upgrade::Remove-Unused-Dependencies "true";
 

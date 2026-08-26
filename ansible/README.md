@@ -42,3 +42,14 @@ exists on the box).
   delivery needs a decision about *how* (an external SMTP relay's credentials for something like
   `msmtp`, vs. local-only delivery you'd have to remember to check) — not something to invent
   without asking.
+
+## Known unfixable gap: no armel security-patch channel
+
+`bookworm-security` dropped `armel` from its supported architectures once bookworm aged into
+`oldstable` (confirmed 2026-08-26 against the live Release file — it now lists only
+`amd64 arm64 armhf i386 ppc64el`). This isn't something this playbook (or any local config) can
+fix: there is currently no official Debian channel delivering CVE patches for this architecture on
+this release. `unattended-upgrades` is configured to also pull from `bookworm-updates` as a partial
+mitigation, but that channel is for urgent non-security fixes, not CVE patches — it's better than
+nothing, not a substitute. This device's security posture leans more heavily on `ufw` (deny-all
+except SSH) and not exposing services than on OS patching for as long as this remains true.
