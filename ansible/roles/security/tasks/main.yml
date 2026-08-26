@@ -52,18 +52,36 @@
   when: "'Status: active' not in security_ufw_status.stdout"
   changed_when: true
 
+# bookworm-security has no binary-armel index for this box's native architecture, so
+# apt fetches nothing at all from it by default (Architecture: all packages — e.g.
+# ca-certificates — are bundled inside each per-arch Packages file, not a separate
+# universal index). Restricting this source to exactly one small foreign arch
+# (armhf, ~300KB) is the cheapest way to still get that Packages file and its
+# arch:all security patches, without paying for archs we'll never use. Do NOT list
+# multiple architectures here — apt's `arch=` fetches all of them unconditionally,
+# not just whichever intersect with what's actually needed (confirmed the hard way:
+# listing all 5 real architectures fetched all 5 index files, ~1.6MB, every run).
+- name: Restore arch:all security coverage from bookworm-security cheaply
+  ansible.builtin.lineinfile:
+    path: /etc/apt/sources.list
+    regexp: '^deb(\s+\[arch=[^]]*\])?\s+http://security\.debian\.org/debian-security\s+bookworm-security\s+main$'
+    line: 'deb [arch=armhf] http://security.debian.org/debian-security bookworm-security main'
+
 - name: Configure unattended-upgrades origins
   ansible.builtin.copy:
     dest: /etc/apt/apt.conf.d/50unattended-upgrades-local
     mode: '0644'
     content: |
-      // bookworm-security dropped armel from its supported architectures once
-      // bookworm became oldstable (confirmed via the live Release file:
+      // bookworm-security dropped armel's binary-armel index once bookworm
+      // became oldstable (confirmed via the live Release file:
       // https://security.debian.org/debian-security/dists/bookworm-security/Release
-      // lists only amd64/arm64/armhf/i386/ppc64el) — this line is kept in case
-      // that ever changes, but currently matches zero packages on this box.
-      // bookworm-updates is the only channel still actually delivering
-      // anything here; it's urgent/time-sensitive fixes, not CVE patches.
+      // lists only amd64/arm64/armhf/i386/ppc64el) — but it still serves
+      // architecture-independent ("all") packages just fine, e.g.
+      // ca-certificates security updates, so this line isn't dead weight.
+      // Only armel-specific compiled binaries (kernel, libc, openssl, etc.)
+      // get no security-patch channel at all. bookworm-updates is added as a
+      // partial mitigation for those; it's urgent/time-sensitive fixes, not
+      // CVE patches.
       Unattended-Upgrade::Origins-Pattern {
               "origin=Debian,codename=${distro_codename}-security";
               "origin=Debian,codename=${distro_codename}-updates";

@@ -43,13 +43,20 @@ exists on the box).
   `msmtp`, vs. local-only delivery you'd have to remember to check) — not something to invent
   without asking.
 
-## Known unfixable gap: no armel security-patch channel
+## Known gap: no armel-binary security-patch channel
 
-`bookworm-security` dropped `armel` from its supported architectures once bookworm aged into
-`oldstable` (confirmed 2026-08-26 against the live Release file — it now lists only
-`amd64 arm64 armhf i386 ppc64el`). This isn't something this playbook (or any local config) can
-fix: there is currently no official Debian channel delivering CVE patches for this architecture on
-this release. `unattended-upgrades` is configured to also pull from `bookworm-updates` as a partial
-mitigation, but that channel is for urgent non-security fixes, not CVE patches — it's better than
-nothing, not a substitute. This device's security posture leans more heavily on `ufw` (deny-all
-except SSH) and not exposing services than on OS patching for as long as this remains true.
+`bookworm-security` dropped `armel`'s `binary-armel` index once bookworm aged into `oldstable`
+(confirmed 2026-08-26 against the live Release file — it now lists only
+`amd64 arm64 armhf i386 ppc64el`). By default this means apt fetches *nothing at all* from that
+repo (`Architecture: all` packages, like `ca-certificates`, are bundled inside each per-arch
+`Packages` file — there's no separate universal index to fall back to). The `security` role's
+sources.list task restricts that source to exactly one small foreign architecture (`armhf`,
+~300KB) purely to pull that file and its `all`-arch security patches cheaply — **do not add more
+architectures to that list**: apt's `arch=` option fetches every listed architecture
+unconditionally (not just whichever intersect with what's needed), so listing all 5 real
+architectures wastes ~1.6MB per `apt update` for zero extra benefit (confirmed the hard way).
+What this doesn't fix: architecture-specific *compiled* packages (kernel, libc, openssl, etc.)
+still have no official security-patch channel on this release/architecture combination at all —
+`unattended-upgrades` also pulls from `bookworm-updates` as a partial mitigation for those (urgent
+non-security fixes, not CVE patches). This device's security posture leans more heavily on `ufw`
+(deny-all except SSH) and not exposing services than on OS patching for that remaining gap.
