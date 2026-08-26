@@ -6,14 +6,21 @@ commands typed over a serial console.
 
 ## Layout
 
-Four roles, applied in this order (`playbook.yml`):
+Five roles, applied in this order (`playbook.yml`):
 
-- **base** — utility packages (rsync, smartmontools, lm-sensors), hostname.
+- **base** — utility packages (rsync, smartmontools, lm-sensors, gnupg), hostname.
 - **swap** — swapfile creation and persistence.
 - **security** — sudo/ufw/unattended-upgrades packages, admin user's sudo-group membership,
   explicit sshd policy, firewall rules.
 - **tuning** — journald size cap, `vm.swappiness`, RAID resync floor, one-time `sensors-detect`
   (depends on `lm-sensors` from the `base` role, hence the ordering).
+- **monitoring** — push notifications via [ntfy.sh](https://ntfy.sh) for mdadm RAID events (via
+  its `PROGRAM` directive), smartd alerts (via `-M exec`, smartd configured against both disks by
+  stable `/dev/disk/by-id` path with a weekly long self-test schedule), and an lm-sensors hardware
+  alarm-bit check on a systemd timer. Depends on `smartmontools`/`lm-sensors` from `base`. **The
+  real ntfy topic lives in `ansible/host_vars/iomega.yml` (gitignored, not this repo)** — it's a
+  bearer secret: anyone who knows it can read your alerts or post fake ones on public ntfy.sh.
+  `defaults/main.yml`'s placeholder deliberately fails loudly (curl 404s) if you forget to set it.
 
 Each role's tunables live in its own `defaults/main.yml` (e.g. `roles/swap/defaults/main.yml` for
 swapfile size/path) — override via `-e` or a host/group_vars file rather than editing the role.
@@ -37,11 +44,8 @@ exists on the box).
 - **Adding the second disk to the RAID arrays** (`mdadm --add`). A live, carefully-sequenced task
   done by hand once the pending data copy off the old disk is confirmed complete — see the
   project's plan notes, not a routine idempotent playbook task.
-- **RAID/SMART email alerts.** `mdadm.conf` already has `MAILADDR root` and `smartd` is installed,
-  but there's no mail transport agent on this box, so alerts currently go nowhere. Wiring up real
-  delivery needs a decision about *how* (an external SMTP relay's credentials for something like
-  `msmtp`, vs. local-only delivery you'd have to remember to check) — not something to invent
-  without asking.
+- ~~RAID/SMART/sensor alerts~~ — **implemented, see the `monitoring` role above** (ntfy.sh push
+  notifications, chosen 2026-08-26 over local-only mail or an external SMTP relay).
 
 ## Known gap: no armel-binary security-patch channel
 

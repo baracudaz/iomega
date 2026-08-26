@@ -1,0 +1,19 @@
+---
+# Real value lives in ansible/host_vars/iomega.yml (gitignored — the topic name
+# is a shared secret: anyone who knows it can read your alerts or post fake ones
+# on public ntfy.sh). This placeholder deliberately fails loudly if not overridden.
+monitoring_ntfy_topic: CHANGE_ME_SEE_HOST_VARS
+monitoring_ntfy_server: https://ntfy.sh
+
+# Stable /dev/disk/by-id paths (serial-keyed), not /dev/sdX — device letters are not
+# stable across reboots on this box once a second disk is attached.
+monitoring_smart_devices:
+  - /dev/disk/by-id/ata-ST4000VN000-1H4168_Z3016JDN
+  - /dev/disk/by-id/ata-WDC_WD10EADS-42P6B0_WD-WCAV58156588
+
+# smartd self-test schedule (smartd.conf -s regex syntax): short daily at 02:00,
+# long (full surface scan) weekly on Saturday at 03:00.
+monitoring_smart_test_schedule: "(S/../.././02|L/../../6/03)"
+
+# How often the lm-sensors alarm-bit check runs.
+monitoring_sensors_check_interval: 30min

@@ -1,0 +1,117 @@
+---
+- name: Install monitoring dependencies
+  ansible.builtin.apt:
+    name:
+      - curl
+    state: present
+    update_cache: true
+    cache_valid_time: 3600
+
+- name: Deploy shared ntfy.sh notification helper
+  ansible.builtin.copy:
+    dest: /usr/local/sbin/notify-ntfy.sh
+    mode: '0700'
+    content: |
+      #!/bin/sh
+      # Usage: notify-ntfy.sh "title" "message body"
+      # Topic is a bearer secret (see monitoring role's defaults/main.yml) —
+      # kept 0700/root-only, not passed as a CLI arg (would leak via `ps`).
+      TITLE="${1:-iomega alert}"
+      MESSAGE="${2:-(no message)}"
+      curl -fsS \
+        -H "Title: ${TITLE}" \
+        -H "Priority: high" \
+        -H "Tags: warning" \
+        -d "${MESSAGE}" \
+        "{{ monitoring_ntfy_server }}/{{ monitoring_ntfy_topic }}" >/dev/null
+
+- name: Deploy mdadm ntfy notifier
+  ansible.builtin.copy:
+    dest: /usr/local/sbin/mdadm-notify.sh
+    mode: '0755'
+    content: |
+      #!/bin/sh
+      # Invoked by mdadm --monitor (mdmonitor.service) as: $0 event md-device [related-device]
+      /usr/local/sbin/notify-ntfy.sh "iomega RAID: $1" "Device: $2${3:+ (related: $3)}"
+
+- name: Point mdadm's monitor daemon at the ntfy notifier
+  ansible.builtin.lineinfile:
+    path: /etc/mdadm/mdadm.conf
+    regexp: '^PROGRAM'
+    line: 'PROGRAM /usr/local/sbin/mdadm-notify.sh'
+    insertafter: '^MAILADDR'
+
+- name: Deploy smartd ntfy notifier
+  ansible.builtin.copy:
+    dest: /usr/local/sbin/smartd-notify.sh
+    mode: '0755'
+    content: |
+      #!/bin/sh
+      # Invoked by smartd (-M exec) with SMARTD_SUBJECT/SMARTD_MESSAGE env vars set.
+      /usr/local/sbin/notify-ntfy.sh "iomega SMART: ${SMARTD_SUBJECT:-alert}" "${SMARTD_MESSAGE:-(no message)}"
+
+- name: Configure smartd to monitor both disks by stable by-id path
+  ansible.builtin.copy:
+    dest: /etc/smartd.conf
+    mode: '0644'
+    content: |
+      # Managed by ansible (monitoring role) — do not add DEVICESCAN back, it
+      # re-resolves /dev/sdX at smartd startup, which isn't stable on this box
+      # once a second disk is attached.
+      {% for dev in monitoring_smart_devices %}
+      {{ dev }} -a -o on -S on -s {{ monitoring_smart_test_schedule }} -m root -M exec /usr/local/sbin/smartd-notify.sh
+      {% endfor %}
+  notify: Restart smartmontools
+
+- name: Deploy lm-sensors alarm-check script
+  ansible.builtin.copy:
+    dest: /usr/local/sbin/check-sensors-alarms.sh
+    mode: '0755'
+    content: |
+      #!/bin/sh
+      # Notifies via ntfy if any lm-sensors hardware alarm bit is currently set.
+      # Relies on lm-sensors' own alarm-bit interpretation (it annotates a
+      # reading with "ALARM" when the chip's hardware alarm register is set)
+      # rather than reimplementing threshold comparisons here.
+      set -e
+      OUTPUT="$(sensors)"
+      if echo "$OUTPUT" | grep -qi alarm; then
+          /usr/local/sbin/notify-ntfy.sh "iomega sensors: ALARM" "$OUTPUT"
+      fi
+
+- name: Install systemd unit for the sensors alarm check
+  ansible.builtin.copy:
+    dest: /etc/systemd/system/check-sensors-alarms.service
+    mode: '0644'
+    content: |
+      [Unit]
+      Description=Check lm-sensors alarm bits and notify via ntfy if any are set
+
+      [Service]
+      Type=oneshot
+      ExecStart=/usr/local/sbin/check-sensors-alarms.sh
+  notify: Reload systemd
+
+- name: Install systemd timer for the sensors alarm check
+  ansible.builtin.copy:
+    dest: /etc/systemd/system/check-sensors-alarms.timer
+    mode: '0644'
+    content: |
+      [Unit]
+      Description=Periodic lm-sensors alarm check
+
+      [Timer]
+      OnBootSec=5min
+      OnUnitActiveSec={{ monitoring_sensors_check_interval }}
+      Persistent=true
+
+      [Install]
+      WantedBy=timers.target
+  notify: Reload systemd
+
+- name: Enable and start the sensors alarm check timer
+  ansible.builtin.systemd:
+    name: check-sensors-alarms.timer
+    enabled: true
+    state: started
+    daemon_reload: true
