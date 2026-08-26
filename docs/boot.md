@@ -213,6 +213,15 @@ saveenv
 this device.) Then power-cycle — it boots the original Iomega firmware from NAND, unrelated to
 whatever state the SATA disk or its `bootcmd_sata` is in.
 
+**U-Boot binary backup:** `artifacts/firmware/uboot-nand-dump.bin` is a raw dump of the `uboot`
+MTD partition (`mtd0`, 512KB), taken 2026-08-26 via `nanddump -f - /dev/mtd0`. Read twice and
+compared (identical, 0 ECC failures, 0 bad blocks) before trusting the dump. Actual binary content
+is ~475KB; the rest of the 512KB partition is erased (`0xFF`) padding. Be clear-eyed about this
+backup's actual value given the no-`kwboot`-recovery situation above: the boot ROM reads this
+partition *before* Linux ever runs, so this file can only help in the narrow case where NAND gets
+corrupted while the box is still up and hasn't rebooted yet (`nandwrite` the good copy back before
+rebooting) — it is **not** a brick-recovery tool for a device that's already failed to boot.
+
 ### Reading/writing the U-Boot environment from Linux (`fw_printenv`/`fw_setenv`)
 
 No need to reach for the serial console for routine environment inspection or edits — `u-boot-tools`
