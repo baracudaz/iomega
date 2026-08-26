@@ -42,6 +42,15 @@
     regexp: '^MAILADDR'
     state: absent
 
+# The stock Debian mdadm.conf comment above this line was written for MAILADDR
+# ("...where to send mail alerts") and reads oddly now that PROGRAM is the only
+# mechanism left — fix it up rather than leave a stale/misleading comment in place.
+- name: Fix stale "mail alerts" comment left over from MAILADDR
+  ansible.builtin.lineinfile:
+    path: /etc/mdadm/mdadm.conf
+    regexp: '^# instruct the monitoring daemon where to send mail alerts$'
+    line: '# instruct the monitoring daemon to run our ntfy notifier on RAID events'
+
 - name: Point mdadm's monitor daemon at the ntfy notifier
   ansible.builtin.lineinfile:
     path: /etc/mdadm/mdadm.conf
