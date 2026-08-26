@@ -34,12 +34,19 @@
       # Invoked by mdadm --monitor (mdmonitor.service) as: $0 event md-device [related-device]
       /usr/local/sbin/notify-ntfy.sh "iomega RAID: $1" "Device: $2${3:+ (related: $3)}"
 
+# No MTA — PROGRAM below is the sole alert path. Leaving MAILADDR in place generates
+# harmless but noisy "sendmail: not found" errors in the journal on every real event.
+- name: Remove MAILADDR from mdadm.conf
+  ansible.builtin.lineinfile:
+    path: /etc/mdadm/mdadm.conf
+    regexp: '^MAILADDR'
+    state: absent
+
 - name: Point mdadm's monitor daemon at the ntfy notifier
   ansible.builtin.lineinfile:
     path: /etc/mdadm/mdadm.conf
     regexp: '^PROGRAM'
     line: 'PROGRAM /usr/local/sbin/mdadm-notify.sh'
-    insertafter: '^MAILADDR'
 
 - name: Deploy smartd ntfy notifier
   ansible.builtin.copy:
