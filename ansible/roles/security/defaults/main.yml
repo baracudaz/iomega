@@ -1,2 +1,3 @@
 ---
-security_admin_user: stano
+security_admin_user: admin
+security_passwordless_sudo: true

@@ -15,6 +15,14 @@
     groups: sudo
     append: true
 
+- name: Grant passwordless sudo to admin user
+  ansible.builtin.copy:
+    dest: "/etc/sudoers.d/{{ security_admin_user }}-nopasswd"
+    mode: '0440'
+    content: "{{ security_admin_user }} ALL=(ALL) NOPASSWD:ALL\n"
+    validate: 'visudo -cf %s'
+  when: security_passwordless_sudo
+
 - name: Pin explicit SSH root-login policy (no password login for root, key-only)
   ansible.builtin.lineinfile:
     path: /etc/ssh/sshd_config

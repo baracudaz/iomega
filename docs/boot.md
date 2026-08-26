@@ -12,8 +12,9 @@ internal SATA disk (software RAID1, degraded/single-disk), booted via the stock 
    `fdisk`/`e2fsprogs` — it already knows how to detect the SATA controller and set up software
    RAID.
 3. Partition layout (MBR, not GPT):
-   + `sda1` — 500MB, **plain ext2, NOT RAID** (U-Boot can't read through RAID metadata), mounted
-     `/boot`.
+   + `sda1` — 500MB, ext2, mounted `/boot`. Installed as a plain (non-RAID) partition, later
+     converted to a degraded RAID1 (`md2`, `--metadata=1.0`) once a second disk was available —
+     see "`/boot` on RAID1" below for why `metadata=1.0` specifically is required here.
    + `sda5` — 20GB, "physical volume for RAID" → degraded RAID1 (`md0`) → ext4, mounted `/`.
    + `sda6` — remainder (~980GB), same pattern → degraded RAID1 (`md1`) → ext4, mounted
      `/srv/data`.
@@ -58,6 +59,51 @@ saveenv
 
 Find `<root-fs-uuid>` from within the installed system with `blkid /dev/md0` (or whichever `mdX`
 device holds `/`) — `root=UUID=...` is more robust than a device name, which can shift.
+
+## `/boot` on RAID1 (metadata=1.0)
+
+`/` (`md0`) and `/srv/data` (`md1`) use mdadm's default metadata version (1.2), which is fine
+because U-Boot never reads them directly — Linux mounts them after boot. `/boot` is different:
+U-Boot's `ext2load` reads the raw partition (`ide 1:1`) directly, with zero awareness of RAID.
+Default metadata versions don't work here:
+
++ **1.2** (mdadm's default) writes its superblock ~4KB into the start of the device — right where
+  the ext2 boot sector/superblock lives. U-Boot would find RAID metadata instead of a filesystem.
++ **1.1** writes it at byte 0 — same problem, worse.
++ **1.0** writes it at the *end* of the device instead. The ext2 filesystem still starts at offset
+  0, byte-for-byte identical to a non-RAID partition from U-Boot's point of view — it just ignores
+  the trailing superblock it doesn't know exists. This is the same trick historically used for
+  GRUB `/boot`-on-RAID before bootloaders understood mdadm natively.
+
+Converting an existing plain `/boot` partition to this (done here on `sdb1`, degraded — no second
+`/boot`-sized partition exists yet on the second disk):
+
+```bash
+cp -a /boot/. /root/boot-backup/        # back up first — recreate is destructive
+umount /boot
+mdadm --create /dev/md2 --level=1 --raid-devices=2 --metadata=1.0 /dev/sdb1 missing
+mkfs.ext2 /dev/md2
+mount /dev/md2 /boot
+cp -a /root/boot-backup/. /boot/
+# update /etc/fstab's /boot UUID to the new md2 filesystem's UUID (blkid /dev/md2)
+mdadm --detail --scan /dev/md2 >> /etc/mdadm/mdadm.conf
+update-initramfs -u                     # mdadm.conf changed, initrd.img gets regenerated...
+mkimage -A arm -O linux -T ramdisk -C gzip -a 0 -e 0 \
+  -n initramfs -d /boot/initrd.img-<version> /boot/uInitrd   # ...so uInitrd must be rebuilt too
+```
+
+Verified end-to-end with a real reboot: U-Boot's `ext2load` read the kernel/initrd off `sdb1`
+exactly as before (it has no idea the partition is now a RAID member), and Linux auto-assembled
+`md2` and mounted it at `/boot` normally afterward. Add the second member once the other disk has
+a matching-size first partition: `mdadm --add /dev/sda1 /dev/md2`.
+
+**Not yet verified: booting from the *other* disk.** `bootcmd_sata` hardcodes `ide 1:1` (Gotcha #1
+below) — that happens to be whichever disk U-Boot enumerates as IDE device 1 with only one disk
+attached. Once a real two-disk mirror exists, the whole point is surviving either disk failing —
+so before trusting this setup, physically test booting with *only* the second disk connected (the
+one currently at `sda`) and confirm U-Boot still finds it at the same `ide 1:1`, or update
+`bootcmd_sata` if its bay position enumerates differently. Don't assume RAID1 membership alone
+makes both disks equally bootable; only Linux-level (post-U-Boot) redundancy is proven so far.
 
 ## Gotchas (the two bugs that cost the most time)
 

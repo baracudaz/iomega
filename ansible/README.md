@@ -25,11 +25,9 @@ ansible-galaxy collection install ansible.posix   # provides the sysctl module u
 ansible-playbook -i inventory.ini playbook.yml --ask-become-pass
 ```
 
-You'll be prompted for **root's password** (not `stano`'s) — that's `ansible_become_method=su`
-in `inventory.ini`, deliberately not `sudo`. `sudo` isn't installed on the box yet (that's one of
-the things this playbook installs), so the very first run can't use it to escalate privileges;
-`su` with root's existing password sidesteps that chicken-and-egg problem and keeps working on
-every subsequent run too, so there's no reason to switch it to `sudo` later.
+You'll be prompted for **`admin`'s password** — `sudo` is installed and `admin` is in the `sudo`
+group (done by hand on 2026-08-26, replacing the original bootstrap `stano` user, which no longer
+exists on the box).
 
 ## What this does NOT cover (deliberately, needs a human decision first)
 
