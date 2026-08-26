@@ -223,14 +223,26 @@ corrupted while the box is still up and hasn't rebooted yet (`nandwrite` the goo
 rebooting) — it is **not** a brick-recovery tool for a device that's already failed to boot.
 
 Same treatment for the environment partitions: `artifacts/firmware/uboot-env-dump.bin` (`mtd1`) and
-`uboot-env2-dump.bin` (`mtd2`), 128KB each, same day, same double-read verification (identical, 0
-ECC failures, 0 bad blocks — and `env`/`env2` legitimately differ from *each other*, which is
-normal for U-Boot's redundant-environment scheme, not a read error). Confirmed both contain the
-real, current environment (`strings` shows `bootcmd_sata` matching the live value exactly) — these
-are actual usable backups, unlike the `uboot` binary above: if the environment ever gets corrupted
-or a bad `saveenv` bricks the *variables* (not the bootloader binary itself), these can be
-`nandwrite`-restored from a USB-booted rescue environment, which is a real, working recovery path
-on this hardware (unlike `kwboot`).
+`uboot-env2-dump.bin` (`mtd2`), 128KB each, same double-read verification (identical, 0 ECC
+failures, 0 bad blocks). Confirmed both contain the real, current environment (`bootcmd_sata`
+matching the live value exactly) — these are actual usable backups, unlike the `uboot` binary
+above: if the environment ever gets corrupted or a bad `saveenv` bricks the *variables* (not the
+bootloader binary itself), these can be `nandwrite`-restored from a USB-booted rescue environment,
+a real, working recovery path on this hardware (unlike `kwboot`).
+
+**How the redundant pair actually works** (verified empirically, not just from the man page): each
+copy starts with a 4-byte CRC32 + a 1-byte generation counter, then the variable data. `env` and
+`env2` are **not** meant to be identical — it's a "current + previous" pair, not a mirror. Every
+`fw_setenv`/`saveenv` writes a fresh copy of the *entire* environment to whichever side currently
+has the lower generation number, with counter = `max(both) + 1`; that side becomes the new
+"current" one, and the other now correctly lags by exactly one save, as a deliberate rollback
+point — not a fault. Confirmed by testing: writing a disposable variable correctly alternated the
+target each time, and generation numbers tracked exactly as expected. One trap worth knowing:
+`strings` isn't a safe way to inspect what's *actually* active in a dump — it happily prints stale
+bytes sitting past the real double-NUL environment terminator, left over from before a shorter
+value was last written there. A stale string showing up in one copy but not the other looks like
+alternation failed; it doesn't mean that at all. Use `fw_printenv` (or a real parser) to check
+what's actually live, not `strings`.
 
 Also backed up the stock kernel/initrd partitions: `uboot-kernel-dump.bin` (`mtd3`, 3MB) and
 `uboot-initrd-dump.bin` (`mtd4`, 4MB) — same double-read verification, both clean (0 ECC failures,
