@@ -57,12 +57,14 @@ setenv bootcmd 'run bootcmd_sata'
 saveenv
 ```
 
-Find `<root-fs-uuid>` from within the installed system with `blkid /dev/md0` (or whichever `mdX`
-device holds `/`) — `root=UUID=...` is more robust than a device name, which can shift.
+Find `<root-fs-uuid>` from within the installed system by checking which `mdX` device is mounted
+at `/` (`mount | grep ' / '`), then `blkid` that device — `root=UUID=...` is more robust than a
+device or `mdX` name, both of which can shift (see "md device renumbering" below — `/`'s `md`
+number specifically is *not* stable across this project's own history).
 
 ## `/boot` on RAID1 (metadata=1.0)
 
-`/` (`md0`) and `/srv/data` (`md1`) use mdadm's default metadata version (1.2), which is fine
+`/` and `/srv/data` use mdadm's default metadata version (1.2), which is fine
 because U-Boot never reads them directly — Linux mounts them after boot. `/boot` is different:
 U-Boot's `ext2load` reads the raw partition (`ide 1:1`) directly, with zero awareness of RAID.
 Default metadata versions don't work here:
@@ -94,8 +96,9 @@ mkimage -A arm -O linux -T ramdisk -C gzip -a 0 -e 0 \
 
 Verified end-to-end with a real reboot: U-Boot's `ext2load` read the kernel/initrd off `sdb1`
 exactly as before (it has no idea the partition is now a RAID member), and Linux auto-assembled
-`md2` and mounted it at `/boot` normally afterward. Add the second member once the other disk has
-a matching-size first partition: `mdadm --add /dev/sda1 /dev/md2`.
+this array and mounted it at `/boot` normally afterward. Add the second member once the other disk
+has a matching-size first partition: `mdadm --add /dev/sda1 /dev/md0` — **note the number**: this
+array was `md2` when first created here, but is `md0` after the later renumbering below.
 
 **Not yet verified: booting from the *other* disk.** `bootcmd_sata` hardcodes `ide 1:1` (Gotcha #1
 below) — that happens to be whichever disk U-Boot enumerates as IDE device 1 with only one disk
@@ -104,6 +107,37 @@ so before trusting this setup, physically test booting with *only* the second di
 one currently at `sda`) and confirm U-Boot still finds it at the same `ide 1:1`, or update
 `bootcmd_sata` if its bay position enumerates differently. Don't assume RAID1 membership alone
 makes both disks equally bootable; only Linux-level (post-U-Boot) redundancy is proven so far.
+
+## md device renumbering (`md0`=`/boot`, `md1`=`/`, `md2`=`/srv/data`)
+
+The numbers above (`/`=`md0`, `/srv/data`=`md1`, `/boot`=`md2`) reflect the order things were
+originally *created* in — the installer made root/data first, `/boot`'s RAID1 conversion came
+later, hence `md2`. Purely for readability (numbers matching boot order, not creation order), this
+was renumbered so `md0`=`/boot`, `md1`=`/`, `md2`=`/srv/data`. The array UUIDs, metadata versions,
+and actual data are completely unaffected — an mdadm array's `/dev/mdN` number is just a label
+assigned at assembly time, not something baked into the array itself. Nothing else on this box
+references `/dev/mdN` directly: `/etc/fstab` mounts by filesystem UUID, and U-Boot reads `sdb1`'s
+raw bytes directly (Gotcha #1 below) with zero awareness that Linux md exists at all — so this was
+a config-only change with no risk to data or the boot chain:
+
+```bash
+# /etc/mdadm/mdadm.conf — edit each ARRAY line's /dev/mdN, matched by UUID (order doesn't
+# matter since each line is independently identified by its own unique UUID):
+#   old md0 (root, UUID c72bd2a3...)  -> new md1
+#   old md1 (data, UUID 45abc5ce...)  -> new md2
+#   old md2 (boot, UUID 7ed383f6...)  -> new md0
+update-initramfs -u                     # picks up the renumbered mdadm.conf...
+mkimage -A arm -O linux -T ramdisk -C gzip -a 0 -e 0 \
+  -n initramfs -d /boot/initrd.img-<version> /boot/uInitrd   # ...so uInitrd must be rebuilt too
+reboot
+```
+
+Verified with a real reboot: all three arrays reassembled under their new numbers automatically
+(no live `mdadm --stop`/reassemble of the mounted root array ever needed — the new numbering only
+takes effect at the next boot's early initramfs assembly), and every mount landed correctly
+(`md0`→`/boot`, `md1`→`/`, `md2`→`/srv/data`). Each array's own `name=` field in `mdadm.conf`
+(`debian:0`, `debian:1`, `iomega:2`) still reflects the old numbering — cosmetic only, harmless,
+not worth chasing further.
 
 ## Gotchas (the two bugs that cost the most time)
 
