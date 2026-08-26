@@ -222,6 +222,16 @@ partition *before* Linux ever runs, so this file can only help in the narrow cas
 corrupted while the box is still up and hasn't rebooted yet (`nandwrite` the good copy back before
 rebooting) — it is **not** a brick-recovery tool for a device that's already failed to boot.
 
+Same treatment for the environment partitions: `artifacts/firmware/uboot-env-dump.bin` (`mtd1`) and
+`uboot-env2-dump.bin` (`mtd2`), 128KB each, same day, same double-read verification (identical, 0
+ECC failures, 0 bad blocks — and `env`/`env2` legitimately differ from *each other*, which is
+normal for U-Boot's redundant-environment scheme, not a read error). Confirmed both contain the
+real, current environment (`strings` shows `bootcmd_sata` matching the live value exactly) — these
+are actual usable backups, unlike the `uboot` binary above: if the environment ever gets corrupted
+or a bad `saveenv` bricks the *variables* (not the bootloader binary itself), these can be
+`nandwrite`-restored from a USB-booted rescue environment, which is a real, working recovery path
+on this hardware (unlike `kwboot`).
+
 ### Reading/writing the U-Boot environment from Linux (`fw_printenv`/`fw_setenv`)
 
 No need to reach for the serial console for routine environment inspection or edits — `u-boot-tools`
