@@ -232,6 +232,18 @@ or a bad `saveenv` bricks the *variables* (not the bootloader binary itself), th
 `nandwrite`-restored from a USB-booted rescue environment, which is a real, working recovery path
 on this hardware (unlike `kwboot`).
 
+Also backed up the stock kernel/initrd partitions: `uboot-kernel-dump.bin` (`mtd3`, 3MB) and
+`uboot-initrd-dump.bin` (`mtd4`, 4MB) — same double-read verification, both clean (0 ECC failures,
+0 bad blocks). Both confirmed as *valid* U-Boot legacy uImages via `file` (which validates the
+header CRC to print details, not just magic-byte sniffing): kernel is `Linux-2.6.31.8` (matches
+this doc's documented stock kernel version exactly) with intact CRCs, initrd's payload starts with
+a genuine `BZh9` bzip2 magic. Both dated November 2014 — consistent with untouched original
+factory firmware, never modified since this project began. These two are large enough (7MB
+combined) that they're the closest thing to a full stock-firmware boot chain backup this repo
+has, short of the `boot` UBI rootfs partition itself (~1016MB — not backed up, impractically large
+for this repo and lowest-value to restore given it's never touched or at risk from this project's
+own changes).
+
 ### Reading/writing the U-Boot environment from Linux (`fw_printenv`/`fw_setenv`)
 
 No need to reach for the serial console for routine environment inspection or edits — `u-boot-tools`
