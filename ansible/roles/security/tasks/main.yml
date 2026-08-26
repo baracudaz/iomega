@@ -30,11 +30,11 @@
     line: 'PermitRootLogin prohibit-password'
   notify: Restart sshd
 
-- name: Pin explicit SSH password-authentication policy
+- name: Disable SSH password authentication (key-only)
   ansible.builtin.lineinfile:
     path: /etc/ssh/sshd_config
     regexp: '^#?PasswordAuthentication'
-    line: 'PasswordAuthentication yes'
+    line: 'PasswordAuthentication no'
   notify: Restart sshd
 
 - name: Check ufw status
