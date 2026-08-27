@@ -4,6 +4,11 @@ Verified working end-to-end on real hardware: fresh Debian 12 (bookworm) install
 internal SATA disk (software RAID1, degraded/single-disk), booted via the stock EMC U-Boot
 1.1.4 — no U-Boot replacement, no NAND kernel/initrd partitions touched.
 
+**Update (2026-08-27):** upgraded in place to Debian 13 (trixie) — see `ansible/README.md`'s "OS
+release" section. Everything below describes the original bookworm bring-up and is still accurate
+for the boot chain itself (unchanged by the OS upgrade); only the installed userspace release has
+moved on.
+
 ## Overview
 
 1. Boot the official Debian bookworm armel/kirkwood netboot installer (`vmlinuz-6.1.0-50-marvell`

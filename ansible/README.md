@@ -47,20 +47,26 @@ exists on the box).
 - ~~RAID/SMART/sensor alerts~~ — **implemented, see the `monitoring` role above** (ntfy.sh push
   notifications, chosen 2026-08-26 over local-only mail or an external SMTP relay).
 
-## Known gap: no armel-binary security-patch channel
+## OS release: trixie (upgraded from bookworm on 2026-08-27)
 
-`bookworm-security` dropped `armel`'s `binary-armel` index once bookworm aged into `oldstable`
-(confirmed 2026-08-26 against the live Release file — it now lists only
-`amd64 arm64 armhf i386 ppc64el`). By default this means apt fetches *nothing at all* from that
-repo (`Architecture: all` packages, like `ca-certificates`, are bundled inside each per-arch
-`Packages` file — there's no separate universal index to fall back to). The `security` role's
-sources.list task restricts that source to exactly one small foreign architecture (`armhf`,
-~300KB) purely to pull that file and its `all`-arch security patches cheaply — **do not add more
-architectures to that list**: apt's `arch=` option fetches every listed architecture
-unconditionally (not just whichever intersect with what's needed), so listing all 5 real
-architectures wastes ~1.6MB per `apt update` for zero extra benefit (confirmed the hard way).
-What this doesn't fix: architecture-specific *compiled* packages (kernel, libc, openssl, etc.)
-still have no official security-patch channel on this release/architecture combination at all —
-`unattended-upgrades` also pulls from `bookworm-updates` as a partial mitigation for those (urgent
-non-security fixes, not CVE patches). This device's security posture leans more heavily on `ufw`
-(deny-all except SSH) and not exposing services than on OS patching for that remaining gap.
+Upgraded in place over SSH (`apt upgrade --without-new-pkgs` then `apt full-upgrade`, staged per
+Debian's documented bookworm->trixie procedure) — no NAND/U-Boot changes, no kernel change
+(bodhi's third-party `7.1.9-kirkwood-tld-1` isn't a Debian-archive package, so apt never touches
+it; the trixie release notes explicitly document third-party-kernel armel systems as a supported
+upgrade path). `/etc/apt/sources.list` isn't managed by this playbook — updating it for a future
+release still needs the same by-hand edit. Verified post-upgrade: same kernel, all three `mdX`
+arrays reassembled in their prior degraded state, ssh/ufw/cron/smartd all healthy, `fw_printenv`
+round-trips correctly.
+
+**Important: trixie is upstream's last release to support the armel architecture at all.** This
+board's CPU (Feroceon 88FR131, ARMv5TE) has no hardware FPU, so it can't move to armhf/arm64 —
+Debian's suggested migration target for other armel hardware doesn't apply here. There is no
+further OS upgrade path for this device after trixie; plan hardware replacement/retirement with
+that ceiling in mind.
+
+The previous "no armel-binary security-patch channel" gap (bookworm-security had dropped its
+`binary-armel` index once bookworm aged into `oldstable`) no longer applies: trixie-security
+serves a normal, complete `armel` Packages index (confirmed live against
+`https://security.debian.org/debian-security/dists/trixie-security/Release` — lists armel
+alongside `amd64 arm64 armhf i386 ppc64el riscv64 s390x`), so the `security` role's old
+`[arch=armhf]` sources.list workaround was removed as dead weight.
