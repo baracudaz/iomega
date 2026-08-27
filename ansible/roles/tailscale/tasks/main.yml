@@ -1,0 +1,92 @@
+---
+- name: Install tailscale CLI binary
+  ansible.builtin.get_url:
+    url: "https://github.com/{{ tailscale_release_repo }}/releases/download/{{ tailscale_version }}/tailscale-linux-armv5"
+    dest: /usr/local/bin/tailscale
+    owner: root
+    group: root
+    mode: '0755'
+    checksum: "sha256:{{ tailscale_cli_sha256 }}"
+
+- name: Install tailscaled daemon binary
+  ansible.builtin.get_url:
+    url: "https://github.com/{{ tailscale_release_repo }}/releases/download/{{ tailscale_version }}/tailscaled-linux-armv5"
+    dest: /usr/local/sbin/tailscaled
+    owner: root
+    group: root
+    mode: '0755'
+    checksum: "sha256:{{ tailscaled_sha256 }}"
+  notify: Restart tailscaled
+
+- name: Configure tailscaled defaults (port/flags)
+  ansible.builtin.copy:
+    dest: /etc/default/tailscaled
+    owner: root
+    group: root
+    mode: '0644'
+    content: |
+      PORT={{ tailscale_port }}
+      FLAGS=""
+  notify: Restart tailscaled
+
+# Adapted from Tailscale's own reference unit:
+# https://github.com/tailscale/tailscale/blob/main/cmd/tailscaled/tailscaled.service
+# (paths changed to /usr/local since this isn't an apt-installed package).
+- name: Install tailscaled systemd unit
+  ansible.builtin.copy:
+    dest: /etc/systemd/system/tailscaled.service
+    owner: root
+    group: root
+    mode: '0644'
+    content: |
+      [Unit]
+      Description=Tailscale node agent
+      Documentation=https://tailscale.com/docs/
+      Wants=network-pre.target
+      After=network-pre.target NetworkManager.service systemd-resolved.service
+
+      [Service]
+      EnvironmentFile=/etc/default/tailscaled
+      ExecStart=/usr/local/sbin/tailscaled --state=/var/lib/tailscale/tailscaled.state --socket=/run/tailscale/tailscaled.sock --port=${PORT} $FLAGS
+      ExecStopPost=/usr/local/sbin/tailscaled --cleanup
+
+      Restart=on-failure
+
+      RuntimeDirectory=tailscale
+      RuntimeDirectoryMode=0755
+      StateDirectory=tailscale
+      StateDirectoryMode=0700
+      CacheDirectory=tailscale
+      CacheDirectoryMode=0750
+      Type=notify
+
+      [Install]
+      WantedBy=multi-user.target
+  notify:
+    - Reload systemd for tailscaled
+    - Restart tailscaled
+
+- name: Enable and start tailscaled
+  ansible.builtin.systemd:
+    name: tailscaled
+    enabled: true
+    state: started
+    daemon_reload: true
+
+# Deliberately NOT automated — `tailscale up` needs a human to open a login URL (or a
+# pre-generated --authkey, which this role doesn't manage). See ansible/README.md's
+# "what this does NOT cover" section.
+- name: Check whether tailscale is authenticated yet
+  ansible.builtin.command: /usr/local/bin/tailscale status --json
+  register: tailscale_status
+  changed_when: false
+  failed_when: false
+
+- name: Warn if tailscale still needs a manual login
+  ansible.builtin.debug:
+    msg: >-
+      tailscaled is running but not logged in. Run 'sudo tailscale up' by hand and open
+      the printed URL to authenticate — this role deliberately doesn't do that for you.
+  when: >-
+    tailscale_status.rc != 0 or
+    'NeedsLogin' in tailscale_status.stdout

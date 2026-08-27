@@ -1,0 +1,36 @@
+---
+# LAN subnet allowed to mount NFS exports and reach port 2049 through ufw. Derived from the
+# box's actual default-route interface at playbook-run time (ansible_default_ipv4 already
+# computes both `network` and `prefix` — no netaddr/ansible.utils dependency needed), not
+# hardcoded — so this keeps working if the box ever moves to a different network/router
+# without needing an edit here. Override with a host_vars entry if that's ever wrong (e.g.
+# multiple NICs where the LAN isn't the default route).
+nfs_allowed_subnet: "{{ ansible_facts.default_ipv4.network }}/{{ ansible_facts.default_ipv4.prefix }}"
+
+# /srv/data exported as the NFSv4 pseudo-root (fsid=0) — clients mount with
+# `mount -t nfs4 iomega:/ /mnt`, not `iomega:/srv/data`. `no_root_squash` is
+# deliberately NOT set — root on a client stays mapped to `nobody`, the safe default.
+#
+# `insecure` (allows client source ports >= 1024, not just reserved/privileged ones) is
+# required for macOS's Finder "Connect to Server" NFS client specifically: it has no way to
+# request a reserved port the way `mount_nfs -o resvport` does (confirmed via an external
+# source while debugging this live: "Finder mounts... cannot pass mount options like resvport,
+# so they fail against servers that require a reserved source port"). Standard practice for
+# NFSv4 exports meant to be broadly client-compatible anyway — both worked examples found
+# while debugging this (an NFSv4-from-Ubuntu-to-macOS writeup, and Ubuntu's own community NFS
+# HowTo) export with `insecure` by default. `root_squash` (above) is the separate, still-active
+# restriction that actually matters for security here — `insecure` alone doesn't grant root
+# access, it just stops requiring a specific client-side port range.
+nfs_exports:
+  - path: /srv/data
+    options: "{{ nfs_allowed_subnet }}(rw,sync,no_subtree_check,fsid=0,insecure)"
+
+# A real writable destination under the export. NFS (sec=sys, the default) authorizes by raw
+# UID/GID, not usernames — there's no automatic mapping between a client's account and
+# anything on this box, and root_squash means client-root can never write to a root-owned
+# directory. Rather than pick one client's UID to match (fragile, and this is a multi-person
+# household NAS — the old Time Capsule disk's ShareRoot/Users/ had folders for several family
+# members, not one account), this is /tmp-style sticky-bit world-writable: anyone can create
+# files, but only a file's own owner (or root) can delete/rename it — so one person's copy job
+# can't clobber another's.
+nfs_shared_dir: /srv/data/shared

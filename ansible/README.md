@@ -6,7 +6,7 @@ commands typed over a serial console.
 
 ## Layout
 
-Five roles, applied in this order (`playbook.yml`):
+Eight roles, applied in this order (`playbook.yml`):
 
 - **base** — utility packages (rsync, smartmontools, lm-sensors, gnupg), hostname.
 - **swap** — swapfile creation and persistence.
@@ -21,6 +21,93 @@ Five roles, applied in this order (`playbook.yml`):
   real ntfy topic lives in `ansible/host_vars/iomega.yml` (gitignored, not this repo)** — it's a
   bearer secret: anyone who knows it can read your alerts or post fake ones on public ntfy.sh.
   `defaults/main.yml`'s placeholder deliberately fails loudly (curl 404s) if you forget to set it.
+- **tailscale** — installs the self-built `tailscale`/`tailscaled` binaries (pinned version +
+  checksum in `defaults/main.yml`) from a GitHub Release, deploys the systemd unit and
+  `/etc/default/tailscaled`, enables the service. Deliberately does **not** run `tailscale up` —
+  see below.
+- **nfs** — installs `nfs-kernel-server`, exports `/srv/data` as the NFSv4 pseudo-root
+  (`fsid=0`, so clients mount `iomega:/`, not `iomega:/srv/data`), restricted to
+  `nfs_allowed_subnet` (derived from the box's actual default-route interface at run time,
+  not hardcoded — see `roles/nfs/defaults/main.yml`) in `/etc/exports`. NFSv3 is explicitly
+  disabled (`/etc/nfs.conf.d/nfsv4-only.conf`, confirmed live via
+  `/proc/fs/nfsd/versions` → `-3 +4 +4.1 +4.2`) so only port 2049 is actually needed for NFS
+  traffic. Disabling v3 in `nfs.conf` alone does **not** stop `rpcbind`/`rpc.statd` from
+  running though — Debian's `nfs-server.service` pulls them in via `Wants=` regardless of
+  the configured versions — so both are masked outright (`systemctl mask`, survives
+  `nfs-server` restarts, unlike a plain stop). Neither is needed for NFSv4-only serving: no
+  NLM crash-recovery (`rpc-statd` is v3-only), no RPC portmapper lookup (`rpcbind` — NFSv4
+  uses a fixed well-known port). **This took two rounds to get right**: an early real macOS
+  mount failed with `rpcbind` masked and worked once unmasked, which looked like solid proof
+  macOS's client needs it unlike Linux's — but that test predated finding the actual fix for
+  macOS NFS mounting (see "macOS NFS client" below). Once that fix was in place, re-tested
+  with `rpcbind` masked again: a fresh macOS mount still negotiated genuine `vers=4.0` with
+  zero traffic reaching port 111 at all. It was never actually required — the earlier test was
+  confounded by not having the real client-side fix yet. `rpc.mountd` is left alone either
+  way — it's a hard `Requires=` of `nfs-server.service` regardless of the v3 setting; masking
+  it breaks the server outright. `ufw` allows port 2049 from two sources:
+  the LAN subnet, and separately anything arriving over the `tailscale0` interface (not a
+  Tailscale CGNAT IP-range match — that range is shared across unrelated deployments, so
+  the interface itself is the more precise restriction). SSH already worked over the
+  tailnet without any extra rule (`ufw allow OpenSSH` has no source restriction, and
+  Tailscale doesn't bypass the host firewall — tailnet traffic still passes through the
+  normal ufw chain like any other interface).
+
+  **Write access, verified properly** (not just mount+read, which earlier passes in this
+  same session had wrongly implied was a full test): `/srv/data` and its existing
+  `timecapsule-backup` dir are `root:root` `755` — writable by nobody over NFS by design,
+  since `root_squash` (the default, deliberately not disabled — see `nfs_exports` above) maps
+  a client's root to `nobody`. Tested against a scratch `0777` directory instead, from macOS,
+  as a normal (non-`sudo`) user: write, readback, and correct ownership (the real client
+  uid/gid, unsquashed — only root gets remapped) all confirmed working end-to-end. `sudo
+  touch` at the mount root still correctly fails (`root_squash` doing its job, not a bug).
+  Takeaway for actually using this export to write data: create a subdirectory owned by
+  (or permissioned for) whichever user will do the writing — don't reach for
+  `no_root_squash` to work around it. The role now creates exactly that: `nfs_shared_dir`
+  (`/srv/data/shared`), `/tmp`-style sticky-bit world-writable (`1777`) rather than owned by
+  one specific UID — this is a multi-person household NAS (the old Time Capsule disk's
+  `ShareRoot/Users/` had folders for several family members, not one account), so matching a
+  single client UID would've been the wrong shape. Sticky bit means anyone can create a file,
+  but only its own owner (or root) can delete/rename it — one person's copy job can't clobber
+  another's.
+- **cleanup** — purges a defined list of unnecessary/dead-weight packages (reportbug, hardware
+  auto-detection tooling, an unused local mail daemon that appeared as an upgrade side effect,
+  etc.), then `autoremove`s whatever that orphans. Every entry's reasoning — and what was
+  deliberately left out and why — lives in `roles/cleanup/defaults/main.yml`, not here.
+
+## macOS NFS client: Finder's "Connect to Server" — fixed
+
+**Working recipe (one-time setup per Mac, then plain Finder "Connect to Server" works normally
+from then on):**
+
+1. `/etc/nfs.conf` must contain `nfs.client.mount.options = vers=4` (`sudo` to edit).
+2. Run `sudo automount -vc` once after that edit — **this step is what earlier attempts missed.**
+   Just editing `nfs.conf` isn't enough; something in the NetFS/automount stack needs the explicit
+   refresh to pick it up (macOS appears to cache per-host connection state — see the
+   `ServerMarkers`/`GetKnownServerMarker` log lines from debugging this — and a plain file edit
+   doesn't invalidate that cache).
+3. Finder → Go → Connect to Server → `nfs://192.168.0.199/shared` → Connect. Plain URL, no
+   `vers=4,` prefix trick, no colon-before-path variant — none of that was ever necessary.
+
+Verified live: `nfsstat -m` after this shows genuine `vers=4.0,tcp,port=2049`; mounts at
+`/Volumes/shared`; real read/write confirmed. Reproduced twice (fresh unmount, fresh
+`automount -vc`, fresh Finder connect) to confirm it's not a one-off.
+
+**How this was found**, kept for context since the debugging path itself has real lessons: this
+was extensively misdiagnosed as unfixable before landing on the actual answer. One real server-side
+bug got fixed along the way even though it turned out not to be the actual cause: `ufw` was
+silently dropping all traffic to `rpcbind` (111), worth having fixed regardless, but `rpcbind`
+itself later turned out to be unnecessary entirely (masked outright now — see the `nfs` role
+bullet above). The export's `secure` flag (switched to `insecure`) genuinely is necessary, since
+Finder can't bind a reserved port either way — but not sufficient alone. Also ruled out:
+mounting a subpath vs. the export root (irrelevant), the
+`nfs://vers=4,host:/path` URL option-embedding trick (a 2017-era OS X 10.11 quirk, not applicable
+here), a colon-before-path URL variant (not it either). The macOS automounter
+(`/etc/auto_master`/`/etc/auto_nfs`, `nolocallocks` being the key detail there — without it a
+`vers=4` mount silently falls back to v3, which fails since this server has v3 disabled) was also
+confirmed working as an alternative, then deliberately reverted at the user's preference before
+the real Finder fix was found. **The one genuinely wrong conclusion drawn mid-debugging**: that
+`/etc/nfs.conf`'s `nfs.client.mount.options` was "confirmed irrelevant" to Finder's client. It
+isn't irrelevant — it was just never tested together with `sudo automount -vc` in the same pass.
 
 Each role's tunables live in its own `defaults/main.yml` (e.g. `roles/swap/defaults/main.yml` for
 swapfile size/path) — override via `-e` or a host/group_vars file rather than editing the role.
@@ -36,6 +123,12 @@ You'll be prompted for **`admin`'s password** — `sudo` is installed and `admin
 group (done by hand on 2026-08-26, replacing the original bootstrap `stano` user, which no longer
 exists on the box).
 
+Each role in `playbook.yml` is tagged with its own name — use `--tags <role>` (e.g.
+`--tags nfs`) to run just one while iterating. Worth knowing given how slow a full run can be
+on this hardware: the `tailscale` role's `get_url` checksum verification runs *on the box
+itself* (234MB RAM, ~400 BogoMIPS single core), not the control machine — downloading and
+hashing ~47MB there routinely takes several minutes even when nothing's actually changed.
+
 ## What this does NOT cover (deliberately, needs a human decision first)
 
 - **Kernel management.** Installing/updating bodhi's kirkwood-tld kernel and rebuilding
@@ -46,6 +139,16 @@ exists on the box).
   project's plan notes, not a routine idempotent playbook task.
 - ~~RAID/SMART/sensor alerts~~ — **implemented, see the `monitoring` role above** (ntfy.sh push
   notifications, chosen 2026-08-26 over local-only mail or an external SMTP relay).
+- **Tailscale login.** The `tailscale` role installs and runs `tailscaled`, but deliberately does
+  **not** run `tailscale up` — that needs a human to open a one-time login URL (or a
+  pre-generated `--authkey`, which this role doesn't manage). Run it by hand after the playbook:
+  `sudo tailscale up`.
+- **Bumping the Tailscale version.** `tailscale_version` + its two checksums in
+  `roles/tailscale/defaults/main.yml` are pinned by hand, not auto-tracked from the upstream
+  build. The fork that builds them
+  ([`baracudaz/tailscale-builds`](https://github.com/baracudaz/tailscale-builds)) auto-builds new
+  upstream stable releases daily, but pulling a new one onto this box is still a deliberate,
+  manual version bump — a root-level network daemon isn't something to auto-upgrade blind.
 
 ## OS release: trixie (upgraded from bookworm on 2026-08-27)
 

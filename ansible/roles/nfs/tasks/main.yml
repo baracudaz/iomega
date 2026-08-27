@@ -1,0 +1,86 @@
+---
+- name: Install nfs-kernel-server
+  ansible.builtin.apt:
+    name: nfs-kernel-server
+    state: present
+    update_cache: true
+    cache_valid_time: 3600
+
+# NFSv4 folds mounting into the main protocol on a single port (2049). Disabling v3 keeps
+# actual NFS *traffic* to just that port. No /etc/nfs.conf ships by default (only an empty
+# /etc/nfs.conf.d/ drop-in dir), so this is a drop-in, same pattern already used for
+# unattended-upgrades in the security role.
+- name: Serve NFSv4 only (disable NFSv3)
+  ansible.builtin.copy:
+    dest: /etc/nfs.conf.d/nfsv4-only.conf
+    owner: root
+    group: root
+    mode: '0644'
+    content: |
+      [nfsd]
+      vers3=n
+  notify: Restart nfs-kernel-server
+
+# Disabling v3 in nfs.conf does NOT stop Debian's nfs-server.service from starting
+# rpcbind/rpc.statd anyway (confirmed live: they're pulled in via Wants=, not conditional on
+# the configured versions) — only masking actually keeps a unit down. Neither is needed for
+# NFSv4-only serving: no NLM crash-recovery (rpc-statd is v3-only), and no RPC portmapper
+# lookup (NFSv4 uses a fixed well-known port). This was genuinely hard to pin down live: an
+# early real macOS client mount failed with rpcbind masked and worked once unmasked, which
+# looked like proof macOS's client needs rpcbind unlike Linux's — but that test predated
+# discovering the actual fix for macOS NFS mounting (see the "macOS NFS client" section
+# below: /etc/nfs.conf's nfs.client.mount.options plus `automount -vc`). Once that fix was in
+# place, re-tested with rpcbind masked again — a fresh macOS mount still negotiated genuine
+# vers=4.0 with zero traffic reaching port 111 at all (confirmed via `ss`). rpcbind was never
+# actually required; the earlier test was confounded by not having the real fix yet.
+# nfs-mountd itself is NOT touched either way: it's a hard `Requires=` of nfs-server.service
+# regardless of the v3 setting, masking it breaks the server outright.
+- name: Mask rpcbind and rpc-statd (unneeded for NFSv4-only serving)
+  ansible.builtin.systemd:
+    name: "{{ item }}"
+    masked: true
+    state: stopped
+  loop:
+    - rpcbind.socket
+    - rpcbind.service
+    - rpc-statd.service
+    - rpc-statd-notify.service
+  notify: Restart nfs-kernel-server
+
+- name: Create a writable directory under the export (see nfs_shared_dir's comment for why)
+  ansible.builtin.file:
+    path: "{{ nfs_shared_dir }}"
+    state: directory
+    owner: root
+    group: root
+    mode: '1777'
+
+- name: Configure exports
+  ansible.builtin.template:
+    src: exports.j2
+    dest: /etc/exports
+    owner: root
+    group: root
+    mode: '0644'
+  notify: Reload NFS exports
+
+# Just port 2049 — rpcbind (111) turned out to not actually be needed at all (see the masking
+# task above), so its rules were removed rather than kept "just in case".
+- name: Allow NFS through ufw from the LAN
+  ansible.builtin.command: "ufw allow from {{ nfs_allowed_subnet }} to any port 2049 proto tcp"
+  register: nfs_ufw_allow_lan
+  changed_when: "'Skipping' not in nfs_ufw_allow_lan.stdout"
+
+# Scoped by interface, not by Tailscale's CGNAT IP range (100.64.0.0/10) — that range is
+# shared/reused across unrelated CGNAT deployments, so matching on the tailscale0 interface
+# itself (traffic that actually arrived over the tailnet) is the more precise restriction.
+- name: Allow NFS through ufw over the tailnet
+  ansible.builtin.command: "ufw allow in on tailscale0 to any port 2049 proto tcp"
+  register: nfs_ufw_allow_tailnet
+  changed_when: "'Skipping' not in nfs_ufw_allow_tailnet.stdout"
+
+- name: Enable and start nfs-kernel-server
+  ansible.builtin.systemd:
+    name: nfs-kernel-server
+    enabled: true
+    state: started

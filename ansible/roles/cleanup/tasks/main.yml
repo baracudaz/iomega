@@ -1,0 +1,11 @@
+---
+- name: Purge unnecessary packages
+  ansible.builtin.apt:
+    name: "{{ cleanup_purge_packages }}"
+    state: absent
+    purge: true
+
+- name: Remove now-orphaned automatic dependencies
+  ansible.builtin.apt:
+    autoremove: true
+    purge: true

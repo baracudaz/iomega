@@ -1,0 +1,14 @@
+---
+# Self-built from official tailscale/tailscale source, not an apt package — no
+# armel/ARMv5 build exists upstream (https://github.com/tailscale/tailscale/issues/676).
+# Built via https://github.com/baracudaz/tailscale-builds (a fork of
+# prashantv/tailscale-builds, GOOS=linux GOARCH=arm GOARM=5), which also auto-builds
+# new upstream stable releases daily. Bumping tailscale_version requires also updating
+# the two checksums below — get them with, e.g.:
+#   curl -sL https://github.com/baracudaz/tailscale-builds/releases/download/<version>/tailscale-linux-armv5 | shasum -a256
+tailscale_version: v1.102.3
+tailscale_release_repo: baracudaz/tailscale-builds
+tailscale_cli_sha256: 4d413ce8f865e046b9b7c1430023948ab6b866c8bf951c866f45a7974867d849
+tailscaled_sha256: 656372cb05adfd368bf4c88d0a17b77529df591de3f9f7fb23c3160906acc002
+
+tailscale_port: 41641

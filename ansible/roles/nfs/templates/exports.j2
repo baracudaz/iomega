@@ -1,0 +1,5 @@
+# Managed by ansible (roles/nfs) — see defaults/main.yml's nfs_exports. Local edits will be
+# overwritten on the next playbook run.
+{% for export in nfs_exports %}
+{{ export.path }} {{ export.options }}
+{% endfor %}

@@ -3,8 +3,19 @@
   hosts: iomega
   become: true
   roles:
-    - base
-    - swap
-    - security
-    - tuning
-    - monitoring
+    - role: base
+      tags: base
+    - role: swap
+      tags: swap
+    - role: security
+      tags: security
+    - role: tuning
+      tags: tuning
+    - role: monitoring
+      tags: monitoring
+    - role: tailscale
+      tags: tailscale
+    - role: nfs
+      tags: nfs
+    - role: cleanup
+      tags: cleanup
