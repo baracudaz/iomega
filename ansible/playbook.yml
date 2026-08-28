@@ -17,5 +17,7 @@
       tags: tailscale
     - role: nfs
       tags: nfs
+    - role: samba
+      tags: samba
     - role: cleanup
       tags: cleanup

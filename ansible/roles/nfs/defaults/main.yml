@@ -7,9 +7,15 @@
 # multiple NICs where the LAN isn't the default route).
 nfs_allowed_subnet: "{{ ansible_facts.default_ipv4.network }}/{{ ansible_facts.default_ipv4.prefix }}"
 
-# /srv/data exported as the NFSv4 pseudo-root (fsid=0) — clients mount with
-# `mount -t nfs4 iomega:/ /mnt`, not `iomega:/srv/data`. `no_root_squash` is
-# deliberately NOT set — root on a client stays mapped to `nobody`, the safe default.
+# nfs_shared_dir (below) exported directly as the NFSv4 pseudo-root (fsid=0) — clients mount
+# with `mount -t nfs4 iomega:/ /mnt` and see its contents right at the mount root, not
+# `iomega:/srv/data/shared` and not a nested `shared` folder one level down. The export path
+# deliberately does NOT cover the wider `/srv/data` directory: `/srv/data/<user>` (private
+# per-user Samba home dirs, see the samba role) live as siblings of `nfs_shared_dir` and must
+# stay outside any NFS export entirely — NFS exports are subtree-based (no "export this dir but
+# not that subdirectory" option), so exporting a wider parent would make those private dirs
+# NFS-visible too. `no_root_squash` is deliberately NOT set — root on a client stays mapped to
+# `nobody`, the safe default.
 #
 # `insecure` (allows client source ports >= 1024, not just reserved/privileged ones) is
 # required for macOS's Finder "Connect to Server" NFS client specifically: it has no way to
@@ -22,15 +28,16 @@ nfs_allowed_subnet: "{{ ansible_facts.default_ipv4.network }}/{{ ansible_facts.d
 # restriction that actually matters for security here — `insecure` alone doesn't grant root
 # access, it just stops requiring a specific client-side port range.
 nfs_exports:
-  - path: /srv/data
+  - path: "{{ nfs_shared_dir }}"
     options: "{{ nfs_allowed_subnet }}(rw,sync,no_subtree_check,fsid=0,insecure)"
 
-# A real writable destination under the export. NFS (sec=sys, the default) authorizes by raw
-# UID/GID, not usernames — there's no automatic mapping between a client's account and
-# anything on this box, and root_squash means client-root can never write to a root-owned
-# directory. Rather than pick one client's UID to match (fragile, and this is a multi-person
-# household NAS — the old Time Capsule disk's ShareRoot/Users/ had folders for several family
-# members, not one account), this is /tmp-style sticky-bit world-writable: anyone can create
-# files, but only a file's own owner (or root) can delete/rename it — so one person's copy job
-# can't clobber another's.
+# The NFS export path itself (see nfs_exports above) and also shared with Samba (see the samba
+# role's samba_share_path) — same directory, same files, reachable over either protocol. NFS
+# (sec=sys, the default) authorizes by raw UID/GID, not usernames — there's no automatic
+# mapping between a client's account and anything on this box, and root_squash means
+# client-root can never write to a root-owned directory. Rather than pick one client's UID to
+# match (fragile, and this is a multi-person household NAS — the old Time Capsule disk's
+# ShareRoot/Users/ had folders for several family members, not one account), this is
+# /tmp-style sticky-bit world-writable: anyone can create files, but only a file's own owner
+# (or root) can delete/rename it — so one person's copy job can't clobber another's.
 nfs_shared_dir: /srv/data/shared

@@ -6,7 +6,7 @@ commands typed over a serial console.
 
 ## Layout
 
-Eight roles, applied in this order (`playbook.yml`):
+Nine roles, applied in this order (`playbook.yml`):
 
 - **base** — utility packages (rsync, smartmontools, lm-sensors, gnupg), hostname.
 - **swap** — swapfile creation and persistence.
@@ -25,10 +25,15 @@ Eight roles, applied in this order (`playbook.yml`):
   checksum in `defaults/main.yml`) from a GitHub Release, deploys the systemd unit and
   `/etc/default/tailscaled`, enables the service. Deliberately does **not** run `tailscale up` —
   see below.
-- **nfs** — installs `nfs-kernel-server`, exports `/srv/data` as the NFSv4 pseudo-root
-  (`fsid=0`, so clients mount `iomega:/`, not `iomega:/srv/data`), restricted to
-  `nfs_allowed_subnet` (derived from the box's actual default-route interface at run time,
-  not hardcoded — see `roles/nfs/defaults/main.yml`) in `/etc/exports`. NFSv3 is explicitly
+- **nfs** — installs `nfs-kernel-server`, exports `nfs_shared_dir` (`/srv/data/shared`) directly
+  as the NFSv4 pseudo-root (`fsid=0`, so clients mount `iomega:/` and see its contents right at
+  the mount root), restricted to `nfs_allowed_subnet` (derived from the box's actual
+  default-route interface at run time, not hardcoded — see `roles/nfs/defaults/main.yml`) in
+  `/etc/exports`. The export deliberately covers only that one directory, not the wider
+  `/srv/data` — `/srv/data/<user>` (private per-user Samba home dirs, see the `samba` role
+  below) live as siblings of it and must stay outside any NFS export: NFS exports are
+  subtree-based (no "export this dir but not that subdirectory" option), so exporting a wider
+  parent would make those private dirs NFS-visible too. NFSv3 is explicitly
   disabled (`/etc/nfs.conf.d/nfsv4-only.conf`, confirmed live via
   `/proc/fs/nfsd/versions` → `-3 +4 +4.1 +4.2`) so only port 2049 is actually needed for NFS
   traffic. Disabling v3 in `nfs.conf` alone does **not** stop `rpcbind`/`rpc.statd` from
@@ -69,6 +74,59 @@ Eight roles, applied in this order (`playbook.yml`):
   single client UID would've been the wrong shape. Sticky bit means anyone can create a file,
   but only its own owner (or root) can delete/rename it — one person's copy job can't clobber
   another's.
+- **samba** — installs `samba` for macOS Finder and CIFS-mounting Linux clients (e.g. the rpi
+  running k3s), with a two-tier IAM model built on top of a single unified data tree (one
+  directory can be reached over either protocol, not separate copies per protocol — matching
+  how NAS vendors like Synology/QNAP actually structure this):
+  - **`[shared]`** (`samba_share_path`, `/srv/data/shared`) — the same directory the `nfs` role
+    exports. Anonymous, read-write: `guest ok = yes` in `smb.conf`, backed globally by
+    `map to guest = Bad User` / `guest account = nobody` (the former is what actually lets an
+    anonymous/no-credentials session be accepted at all, rather than rejected before Samba
+    reaches the per-share `guest ok` check). Still the same `1777` sticky-bit world-writable
+    directory as before.
+  - **`[homes]`** — Samba's special per-user share (`%S` expands to the connecting username, so
+    every account in `samba_users` automatically gets exactly its own share with no per-user
+    config block needed). Each user's Unix home is `samba_users_home_root/<name>`
+    (`/srv/data/<name>`), created `0700`, owned by that user, `valid users = %S` so no other
+    user (or guest) can reach it. **Deliberately Samba-only, never in `/etc/exports`**: plain
+    NFS (`sec=sys`, what the `nfs` role uses) trusts a client's claimed UID with no real
+    authentication, so a "private" NFS home dir would only be private by convention, not
+    enforcement — Samba's privacy here is real, because it actually checks a password.
+  - **`[TimeMachine]`** — a Time Machine backup destination for macOS clients. One fixed share
+    name (`samba_timemachine_share_name`) rather than a `%S`-style special share like `[homes]`
+    — Avahi's static Bonjour advertisement (below) needs one stable name to point at — but the
+    path is still `%u`-substituted (`samba_timemachine_root/%u`, i.e. `/srv/data/timemachine/<name>`,
+    `0700`, owned by that user), so each user's backup sparsebundle stays private and separate
+    from their general files in `[homes]`. `fruit:time machine = yes` is the flag macOS actually
+    checks to offer it as a backup destination; `[global]`'s `vfs objects = catia fruit
+    streams_xattr` + `fruit:aapl = yes` (applied to every share) is what provides that plus
+    general Apple metadata/resource-fork support — all three VFS modules already ship in
+    Debian's `samba` package, no extra package needed. Uncapped by default
+    (`samba_timemachine_max_size`, e.g. `"1T"`, to bound it).
+  - **Bonjour/mDNS auto-discovery** — `avahi-daemon` is installed and given a service
+    definition (`templates/avahi-smb.service.j2`) advertising `_smb._tcp`, `_device-info._tcp`,
+    and `_adisk._tcp` (the `dk0=adVN=<TimeMachine share>,adVF=0x82` TXT record is what makes
+    System Settings → Time Machine → Add Backup Disk list this box automatically, without a
+    manual connect first). `ufw` allows mDNS (UDP 5353) from the LAN subnet only — mDNS is
+    link-local multicast and doesn't route over the tailnet, so there's no `tailscale0`
+    equivalent; a remote Mac can still connect to `[TimeMachine]` manually by hostname/IP over
+    Tailscale, just without auto-discovery.
+  - Accounts are defined in `samba_users` (`roles/samba/defaults/main.yml`), each getting both a
+    Unix system account (nologin, home dir only ever used as its Samba share target, never for
+    login) and a Samba password set via `smbpasswd`. **Real passwords live in
+    `ansible/host_vars/iomega.yml`** (gitignored, same pattern as `monitoring_ntfy_topic`) — the
+    shipped placeholder deliberately fails an `assert` rather than silently provisioning a share
+    with a known password.
+  - SMB is restricted to SMB2/3 only (no legacy SMB1). `nmbd` (NetBIOS name service) is masked
+    outright — unneeded since macOS uses mDNS/Bonjour (now genuinely served by `avahi-daemon`,
+    not `nmbd`) and a Linux cifs mount is given an IP/hostname directly, neither relies on
+    NetBIOS browsing. Port 445 is firewalled via the same LAN-subnet-plus-`tailscale0`-interface
+    `ufw` pattern as the `nfs` role; see the Bonjour bullet above for the separate mDNS rule.
+  - Note: `smbpasswd` has no idempotent "change if different" mode, so rotating a password in
+    `host_vars` after the account already exists needs a manual `smbpasswd` run on the box — the
+    playbook only sets it the first time an account is created. For the k3s side, point a CSI
+    driver (e.g. `csi-driver-smb`) or a plain `mount -t cifs` at `//iomega/shared` (anonymous) or
+    `//iomega/<user>` (credentials in a Secret).
 - **cleanup** — purges a defined list of unnecessary/dead-weight packages (reportbug, hardware
   auto-detection tooling, an unused local mail daemon that appeared as an upgrade side effect,
   etc.), then `autoremove`s whatever that orphans. Every entry's reasoning — and what was
@@ -85,11 +143,15 @@ from then on):**
    refresh to pick it up (macOS appears to cache per-host connection state — see the
    `ServerMarkers`/`GetKnownServerMarker` log lines from debugging this — and a plain file edit
    doesn't invalidate that cache).
-3. Finder → Go → Connect to Server → `nfs://192.168.0.199/shared` → Connect. Plain URL, no
-   `vers=4,` prefix trick, no colon-before-path variant — none of that was ever necessary.
+3. Finder → Go → Connect to Server → `nfs://192.168.0.199/` → Connect. Plain URL, no path
+   suffix, no `vers=4,` prefix trick, no colon-before-path variant — none of that was ever
+   necessary. **No `/shared` suffix**: the NFS export root *is* `nfs_shared_dir`
+   (`/srv/data/shared`) directly (see the `nfs` role bullet above) — appending `/shared` looks
+   for a subdirectory that doesn't exist under the export and fails with "No such file or
+   directory".
 
 Verified live: `nfsstat -m` after this shows genuine `vers=4.0,tcp,port=2049`; mounts at
-`/Volumes/shared`; real read/write confirmed. Reproduced twice (fresh unmount, fresh
+`/Volumes/<mount-name>`; real read/write confirmed. Reproduced twice (fresh unmount, fresh
 `automount -vc`, fresh Finder connect) to confirm it's not a one-off.
 
 **How this was found**, kept for context since the debugging path itself has real lessons: this

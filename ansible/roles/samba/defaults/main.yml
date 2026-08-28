@@ -1,0 +1,49 @@
+---
+# LAN subnet allowed to reach Samba's port 445 through ufw. Same derivation as
+# nfs_allowed_subnet (see roles/nfs/defaults/main.yml) — computed from the box's actual
+# default-route interface at run time, not hardcoded.
+samba_allowed_subnet: "{{ ansible_facts.default_ipv4.network }}/{{ ansible_facts.default_ipv4.prefix }}"
+
+samba_workgroup: WORKGROUP
+
+# Shares the same directory as the nfs role's nfs_shared_dir (see roles/nfs/defaults/main.yml)
+# and is also exported via NFS — a single common area reachable over either protocol,
+# anonymous/guest read-write over Samba (see the [shared] stanza in smb.conf.j2), subnet+
+# root_squash restricted over NFS. Kept as a separate literal default here rather than
+# referencing nfs_shared_dir directly, so this role stays runnable on its own (e.g.
+# `--tags samba`) without depending on the nfs role's defaults being loaded first. If
+# nfs_shared_dir is ever changed, update this to match.
+samba_share_name: shared
+samba_share_path: /srv/data/shared
+
+# Parent directory for each Samba user's private home (see samba_users below) — homes end up
+# at "{{ samba_users_home_root }}/<name>", siblings of samba_share_path. Deliberately NOT
+# exported via NFS (see nfs role's defaults/main.yml): plain NFS (sec=sys) trusts a client's
+# claimed UID with no real authentication, so a "private" NFS home dir would only be private by
+# convention, not enforcement. Samba's per-user privacy (via the [homes] share in smb.conf.j2)
+# is real, because Samba actually checks a password — so per-user privacy lives here, Samba-only.
+samba_users_home_root: /srv/data
+
+# Time Machine backup destination. One fixed share name (samba_timemachine_share_name) rather
+# than a %S-style special share like [homes] — Avahi's static _adisk._tcp advertisement (see
+# tasks/main.yml) needs one stable name to point at. The actual path is still %u-substituted
+# per user (see the [TimeMachine] stanza in smb.conf.j2), so each user's backup sparsebundle
+# lands in its own private directory under samba_timemachine_root, same isolation principle as
+# samba_users_home_root — just kept separate from general private files.
+samba_timemachine_root: /srv/data/timemachine
+samba_timemachine_share_name: TimeMachine
+
+# Unset by default: Time Machine then sees the filesystem's real free space (shared across all
+# users/shares). Set e.g. "1T" to cap what any one user's backup is allowed to grow to.
+samba_timemachine_max_size: ""
+
+# Samba accounts are separate from Unix login accounts: each entry here gets both a system
+# user (nologin, no interactive login — the home dir below is only ever used as a Samba share
+# target, never for logging in) and a Samba password (via smbpasswd), independent of any Unix
+# password. Real passwords belong in ansible/host_vars/iomega.yml (gitignored, not this repo) —
+# same pattern as monitoring_ntfy_topic. This placeholder is deliberately invalid:
+# tasks/main.yml asserts against it and refuses to run rather than silently provisioning a
+# share with a known password.
+samba_users:
+  - name: admin
+    password: CHANGE_ME_SEE_HOST_VARS

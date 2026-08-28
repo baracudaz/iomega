@@ -1,0 +1,76 @@
+# Managed by ansible (roles/samba). Local edits will be overwritten on the next playbook run.
+[global]
+   workgroup = {{ samba_workgroup }}
+   server string = %h server (Samba on Debian)
+
+   # User-level auth by default, but the [shared] share below explicitly opts into guest
+   # access — "Bad User" is what actually lets an anonymous/no-credentials connection be
+   # accepted at the session level at all, rather than rejected before Samba ever reaches the
+   # per-share "guest ok" check. Shares without "guest ok" (like [homes]) still require one of
+   # samba_users' real credentials.
+   security = user
+   map to guest = Bad User
+   guest account = nobody
+
+   # SMB2/3 only. Both macOS and a modern Linux cifs client (the rpi/k3s side) speak SMB2+
+   # natively, so there's no reason to allow the legacy, weaker SMB1 dialect.
+   server min protocol = SMB2_10
+   client min protocol = SMB2_10
+
+   # No NetBIOS name service needed: macOS connects via mDNS/Bonjour or a plain IP/DNS
+   # smb:// URL, and a Linux cifs mount (rpi/k3s) is given the IP/hostname directly — neither
+   # relies on NetBIOS browsing. nmbd is masked in tasks/main.yml; these settings just keep
+   # smb.conf's printing/browsing config consistent with nmbd being off.
+   load printers = no
+   printing = bsd
+   printcap name = /dev/null
+   disable spoolss = yes
+
+   # macOS metadata/Time Machine support, applied to every share. catia maps filename
+   # characters that are legal on macOS but not SMB; fruit provides Apple resource-fork/
+   # metadata handling; streams_xattr is what fruit actually stores that metadata through.
+   # fruit:aapl enables the AAPL SMB2 extension macOS uses to detect fruit's presence — set
+   # explicitly rather than relying on the (version-dependent) default.
+   vfs objects = catia fruit streams_xattr
+   fruit:aapl = yes
+
+# Anonymous, read-write common area — also exported via NFS (see the nfs role), same
+# directory, same files either way. guest ok = yes means no credentials are required at all;
+# writes land as the "nobody" guest account into this 1777 sticky-bit world-writable dir.
+[{{ samba_share_name }}]
+   path = {{ samba_share_path }}
+   browseable = yes
+   read only = no
+   guest ok = yes
+
+# Samba's per-user special share: %S expands to the connecting username, so each authenticated
+# user automatically gets exactly their own home directory here, with no per-user share block
+# needed as samba_users grows or shrinks. valid users = %S means a user can only ever reach
+# their own home this way, never anyone else's. browseable = no just keeps it out of share
+# listings — it's still directly reachable by name (e.g. smb://iomega/<user>).
+[homes]
+   comment = %S's private files
+   browseable = no
+   read only = no
+   valid users = %S
+   create mask = 0600
+   directory mask = 0700
+
+# Time Machine backup destination. One fixed share name (see samba_timemachine_share_name's
+# comment for why, vs. a %S-style special share) but still per-user-substituted path so each
+# authenticated user's backup lands in their own private subdirectory — no other user can
+# reach it, same as [homes]. Deliberately %U (session login name), not %u (Unix username of
+# the *current service*) — confirmed live that %u is only reliably expanded inside Samba's
+# built-in [homes]/[printers] mechanism; on an ordinary named share like this one, smbd logs
+# "%u is a UNKNOWN, expected a user" and denies the tree connect outright, since "valid users"
+# has nothing meaningful to substitute it with yet. %U is the session username and works
+# everywhere. fruit:time machine = yes is the flag macOS actually checks to offer this as a
+# valid backup destination.
+[{{ samba_timemachine_share_name }}]
+   path = {{ samba_timemachine_root }}/%U
+   valid users = %U
+   read only = no
+   fruit:time machine = yes
+{% if samba_timemachine_max_size %}
+   fruit:time machine max size = {{ samba_timemachine_max_size }}
+{% endif %}

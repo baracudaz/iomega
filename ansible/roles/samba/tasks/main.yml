@@ -1,0 +1,160 @@
+---
+- name: Refuse to proceed with a placeholder Samba password
+  ansible.builtin.assert:
+    that: item.password != 'CHANGE_ME_SEE_HOST_VARS'
+    fail_msg: >-
+      samba_users entry '{{ item.name }}' still has the placeholder password — set the real
+      value in ansible/host_vars/iomega.yml (see samba_users' comment in
+      roles/samba/defaults/main.yml).
+  loop: "{{ samba_users }}"
+  loop_control:
+    label: "{{ item.name }}"
+
+- name: Install Samba
+  ansible.builtin.apt:
+    name: samba
+    state: present
+    update_cache: true
+    cache_valid_time: 3600
+
+- name: Create the shared directory (mirrors nfs_shared_dir, see samba_share_path's comment)
+  ansible.builtin.file:
+    path: "{{ samba_share_path }}"
+    state: directory
+    owner: root
+    group: root
+    mode: '1777'
+
+- name: Configure smb.conf
+  ansible.builtin.template:
+    src: smb.conf.j2
+    dest: /etc/samba/smb.conf
+    owner: root
+    group: root
+    mode: '0644'
+  notify: Restart smbd
+
+- name: Ensure Samba system users exist
+  ansible.builtin.user:
+    name: "{{ item.name }}"
+    system: true
+    shell: /usr/sbin/nologin
+    home: "{{ samba_users_home_root }}/{{ item.name }}"
+    create_home: true
+  loop: "{{ samba_users }}"
+  loop_control:
+    label: "{{ item.name }}"
+
+# The user module's created-home permissions depend on the distro's login.defs
+# (HOME_MODE/UMASK), not guaranteed to be 0700 — pinned explicitly here so each user's
+# Samba [homes] share is actually private regardless of that default.
+- name: Ensure each user's home directory is private
+  ansible.builtin.file:
+    path: "{{ samba_users_home_root }}/{{ item.name }}"
+    state: directory
+    owner: "{{ item.name }}"
+    mode: '0700'
+  loop: "{{ samba_users }}"
+  loop_control:
+    label: "{{ item.name }}"
+
+- name: Ensure the Time Machine root directory exists
+  ansible.builtin.file:
+    path: "{{ samba_timemachine_root }}"
+    state: directory
+    owner: root
+    group: root
+    mode: '0755'
+
+# Same isolation principle as the [homes] directories above, just under a separate root so
+# large backup sparsebundles don't mix with each user's general private files.
+- name: Ensure each user's Time Machine directory is private
+  ansible.builtin.file:
+    path: "{{ samba_timemachine_root }}/{{ item.name }}"
+    state: directory
+    owner: "{{ item.name }}"
+    mode: '0700'
+  loop: "{{ samba_users }}"
+  loop_control:
+    label: "{{ item.name }}"
+
+- name: Check existing Samba (smbpasswd) accounts
+  ansible.builtin.command: pdbedit -L
+  register: samba_existing_users
+  changed_when: false
+
+# smbpasswd has no idempotent "set if different" mode, so this only runs for accounts not
+# yet in the Samba password database at all — re-running the playbook after a password
+# change in host_vars won't pick it up (matches the general project stance of not managing
+# secret rotation, e.g. Tailscale's authkey). no_log is required here: the password appears
+# in the rendered command line, and pdbedit -L output also isn't safe to log by default.
+- name: Set Samba passwords for new users
+  ansible.builtin.shell:
+    cmd: |
+      set -o pipefail
+      printf '%s\n%s\n' '{{ item.password }}' '{{ item.password }}' | smbpasswd -s -a {{ item.name }}
+    executable: /bin/bash
+  loop: "{{ samba_users }}"
+  loop_control:
+    label: "{{ item.name }}"
+  when: item.name not in samba_existing_users.stdout
+  no_log: true
+  changed_when: true
+
+# Masked (not just stopped) so it stays down across smbd restarts/upgrades. See the "No
+# NetBIOS name service needed" comment in smb.conf.j2 for why nmbd is unnecessary here —
+# this also means the NetBIOS ports (137/138 UDP, 139 TCP) never need firewalling.
+- name: Mask nmbd (NetBIOS name service, unneeded for IP/DNS-based SMB mounts)
+  ansible.builtin.systemd:
+    name: nmbd
+    masked: true
+    state: stopped
+
+- name: Allow SMB through ufw from the LAN
+  ansible.builtin.command: "ufw allow from {{ samba_allowed_subnet }} to any port 445 proto tcp"
+  register: samba_ufw_allow_lan
+  changed_when: "'Skipping' not in samba_ufw_allow_lan.stdout"
+
+# Scoped by interface, same reasoning as the nfs role's tailnet rule: matching the
+# tailscale0 interface (traffic that actually arrived over the tailnet) rather than
+# Tailscale's shared/reusable CGNAT range (100.64.0.0/10).
+- name: Allow SMB through ufw over the tailnet
+  ansible.builtin.command: "ufw allow in on tailscale0 to any port 445 proto tcp"
+  register: samba_ufw_allow_tailnet
+  changed_when: "'Skipping' not in samba_ufw_allow_tailnet.stdout"
+
+- name: Enable and start smbd
+  ansible.builtin.systemd:
+    name: smbd
+    enabled: true
+    state: started
+
+- name: Install Avahi for mDNS/Bonjour service advertisement
+  ansible.builtin.apt:
+    name: avahi-daemon
+    state: present
+    update_cache: true
+    cache_valid_time: 3600
+
+- name: Advertise the Time Machine share via mDNS (Bonjour auto-discovery)
+  ansible.builtin.template:
+    src: avahi-smb.service.j2
+    dest: /etc/avahi/services/smb.service
+    owner: root
+    group: root
+    mode: '0644'
+  notify: Restart avahi-daemon
+
+# mDNS is link-local multicast — it doesn't route over the tailnet, so there's no equivalent
+# tailscale0 rule here (a remote Mac could still connect to [TimeMachine] manually by
+# hostname/IP over Tailscale, just without auto-discovery).
+- name: Allow mDNS through ufw from the LAN
+  ansible.builtin.command: "ufw allow from {{ samba_allowed_subnet }} to any port 5353 proto udp"
+  register: samba_ufw_allow_mdns
+  changed_when: "'Skipping' not in samba_ufw_allow_mdns.stdout"
+
+- name: Enable and start avahi-daemon
+  ansible.builtin.systemd:
+    name: avahi-daemon
+    enabled: true
+    state: started
