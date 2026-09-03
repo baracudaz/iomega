@@ -1,0 +1,36 @@
+---
+- name: Install fastfetch
+  ansible.builtin.apt:
+    name: fastfetch
+    state: present
+    update_cache: true
+    cache_valid_time: 3600
+
+# Debian's openssh-server ships /etc/pam.d/sshd with:
+#   session optional pam_motd.so motd=/run/motd.dynamic
+#   session optional pam_motd.so noupdate
+# The first line runs every executable in /etc/update-motd.d/ on each SSH login and
+# caches the combined output to /run/motd.dynamic — no pam.d/sshd or cron/timer
+# change needed here, and nothing to risk on the box's only remote access path.
+- name: Install fastfetch as the dynamic SSH login banner
+  # cspell:ignore fastfetch
+  ansible.builtin.copy:
+    dest: /etc/update-motd.d/10-fastfetch
+    mode: "0755"
+    content: |
+      #!/bin/sh
+      exec fastfetch --pipe false --structure \
+        Break:OS:Host:Kernel:Uptime:Packages:Shell:CPU:Memory:Swap:Disk:Battery:PowerAdapter:LocalIP:PublicIP:Weather:PhysicalDisk:Break
+
+- name: Disable the default Message of the Day file
+  ansible.builtin.copy:
+    content: ""
+    dest: /etc/motd
+    owner: root
+    group: root
+    mode: "0644"
+
+- name: Disable the hostname display in the Message of the Day
+  ansible.builtin.file:
+    path: /etc/update-motd.d/10-uname
+    state: absent

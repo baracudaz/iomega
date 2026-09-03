@@ -6,7 +6,7 @@ commands typed over a serial console.
 
 ## Layout
 
-Nine roles, applied in this order (`playbook.yml`):
+Ten roles, applied in this order (`playbook.yml`):
 
 - **base** — utility packages (rsync, smartmontools, lm-sensors, gnupg), hostname.
 - **swap** — swapfile creation and persistence.
@@ -21,6 +21,17 @@ Nine roles, applied in this order (`playbook.yml`):
   real ntfy topic lives in `ansible/host_vars/iomega.yml` (gitignored, not this repo)** — it's a
   bearer secret: anyone who knows it can read your alerts or post fake ones on public ntfy.sh.
   `defaults/main.yml`'s placeholder deliberately fails loudly (curl 404s) if you forget to set it.
+- **motd** — installs [fastfetch](https://github.com/fastfetch-cli/fastfetch) as the SSH login
+  banner, dropped in as `/etc/update-motd.d/10-fastfetch`. Chosen over neofetch (archived upstream
+  as of 2024, and a bash script that forks a separate external command per data point) — fastfetch
+  is a single actively-maintained C binary, which matters on this box's single 400-BogoMIPS core.
+  Relies on Debian's stock `/etc/pam.d/sshd` (ships `session optional pam_motd.so
+  motd=/run/motd.dynamic`, which runs every `/etc/update-motd.d/*` script per login and caches the
+  result) rather than touching `pam.d` or `sshd_config` itself — nothing added here risks the box's
+  only remote access path. `roles/motd/templates/config.jsonc.j2` picks NAS-relevant modules (OS,
+  kernel, uptime, packages, CPU/memory/swap, `/` and `/srv/data` usage, LAN IP) over fastfetch's
+  fancier but irrelevant defaults (GPU, battery, media player). Verified live over a real interactive SSH login (not just
+  running the script by hand) — the banner renders before the shell prompt, as expected.
 - **tailscale** — installs the self-built `tailscale`/`tailscaled` binaries (pinned version +
   checksum in `defaults/main.yml`) from a GitHub Release, deploys the systemd unit and
   `/etc/default/tailscaled`, enables the service. Deliberately does **not** run `tailscale up` —

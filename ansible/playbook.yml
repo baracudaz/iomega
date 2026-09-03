@@ -13,6 +13,8 @@
       tags: tuning
     - role: monitoring
       tags: monitoring
+    - role: motd
+      tags: motd
     - role: tailscale
       tags: tailscale
     - role: nfs
