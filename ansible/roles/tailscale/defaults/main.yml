@@ -8,7 +8,19 @@
 #   curl -sL https://github.com/baracudaz/tailscale-builds/releases/download/<version>/tailscale-linux-armv5 | shasum -a256
 tailscale_version: v1.102.3
 tailscale_release_repo: baracudaz/tailscale-builds
-tailscale_cli_sha256: 4d413ce8f865e046b9b7c1430023948ab6b866c8bf951c866f45a7974867d849
-tailscaled_sha256: 656372cb05adfd368bf4c88d0a17b77529df591de3f9f7fb23c3160906acc002
+# Rebuilt 2026-09-04 with ts_omit_* feature-tag trimming (see
+# github.com/baracudaz/tailscale-builds .github/workflows/build.yaml) — same v1.102.3
+# source, smaller/leaner binaries. Checksums changed accordingly; bump both together
+# whenever the build workflow's BUILD_TAGS changes, even if tailscale_version doesn't.
+tailscale_cli_sha256: e8f5d1dcff4693ccde138d94080246a5f8e59778b7421b84900161853c17de11
+tailscaled_sha256: c98667ebdc58118e7c4e8a477045a4584ee4a2527892533e6b29c2a40178b31f
 
 tailscale_port: 41641
+
+# Tried GOGC/GOMEMLIMIT/GODEBUG=madvdontneed tuning for the 256MB-RAM box (see
+# ansible/roles/tuning) but none of it moved steady-state RSS once isolated from
+# measurement noise — GOMEMLIMIT actively made it worse (35MB vs 25MB baseline; it's a
+# target the GC pacer grows into, not a ceiling). The real win was trimming unused
+# features out of the binary itself via ts_omit_* build tags — see
+# github.com/baracudaz/tailscale-builds .github/workflows/build.yaml — which settled
+# at ~24MB with no runtime env vars at all.
