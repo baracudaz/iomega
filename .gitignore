@@ -1,2 +1,6 @@
 .DS_Store
 ansible/host_vars/
+
+# 1GB NAND "boot"/UBI-rootfs dump — too large to commit, unlike the other small
+# artifacts/firmware/*.bin partition backups. Kept locally only.
+artifacts/firmware/uboot-boot-dump.bin
