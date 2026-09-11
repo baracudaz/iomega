@@ -1,0 +1,16 @@
+---
+- name: Install media-library sorting/dedup tools
+  ansible.builtin.apt:
+    name:
+      # reads ID3v1/v2 (mp3), Vorbis comments (flac/ogg), MP4 atoms (m4a) for the
+      # recovered-media sort script (scripts/sort-recovery.py, not part of this role).
+      - python3-mutagen
+      # mediainfo: fallback probe for audio/video containers mutagen doesn't parse.
+      - mediainfo
+      # exiftool: EXIF/IPTC/XMP reading for the recovered photo carve output.
+      - libimage-exiftool-perl
+      # exact-duplicate detection across the PhotoRec carve output (recup_dir.*) before sorting.
+      - jdupes
+    state: present
+    update_cache: true
+    cache_valid_time: 3600

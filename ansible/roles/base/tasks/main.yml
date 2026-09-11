@@ -7,6 +7,14 @@
       - lm-sensors
       - gnupg
       - u-boot-tools
+      - sysstat
+      # testdisk's Debian package also provides `photorec` (same binary tree, one apt
+      # package) — no separate package needed.
+      - testdisk
+      # tmux: lets photorec's ncurses TUI be driven and monitored non-interactively over SSH
+      # (a detached session survives disconnects, and `tmux capture-pane -e` preserves the
+      # ANSI highlight codes needed to see which menu item is actually selected).
+      - tmux
     state: present
     update_cache: true
     cache_valid_time: 3600

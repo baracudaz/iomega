@@ -1,0 +1,16 @@
+---
+- name: Install diskwatch
+  ansible.builtin.copy:
+    src: "diskwatch-{{ diskwatch_version }}-armv5te"
+    dest: /usr/local/bin/diskwatch
+    owner: root
+    group: root
+    mode: '0755'
+
+- name: Install syswatch
+  ansible.builtin.copy:
+    src: "syswatch-{{ syswatch_version }}-armv5te"
+    dest: /usr/local/bin/syswatch
+    owner: root
+    group: root
+    mode: '0755'

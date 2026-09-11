@@ -40,7 +40,7 @@ samba_timemachine_max_size: ""
 # Samba accounts are separate from Unix login accounts: each entry here gets both a system
 # user (nologin, no interactive login — the home dir below is only ever used as a Samba share
 # target, never for logging in) and a Samba password (via smbpasswd), independent of any Unix
-# password. Real passwords belong in ansible/host_vars/iomega.yml (gitignored, not this repo) —
+# password. Real passwords belong in ansible/host_vars/iomega-sk.yml (gitignored, not this repo) —
 # same pattern as monitoring_ntfy_topic. This placeholder is deliberately invalid:
 # tasks/main.yml asserts against it and refuses to run rather than silently provisioning a
 # share with a known password.

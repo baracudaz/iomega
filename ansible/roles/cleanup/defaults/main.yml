@@ -18,6 +18,11 @@
 #     upgrade (pulled in as Recommends of gnupg's gpg-wks-server / reportbug), not something
 #     intentionally installed. This box's monitoring already goes through ntfy.sh, not local mail —
 #     removed 2026-08-27 after confirming (`apt-get -s remove`) nothing else depends on it.
+#     Note: `apt purge` left behind the `Debian-exim` system user/group and
+#     `/var/spool/exim4` (Debian policy doesn't delete package-created system accounts on
+#     purge) — found and removed by hand on 2026-09-10 (`userdel Debian-exim` +
+#     `rm -rf /var/spool/exim4`), not tracked here since it's a one-off leftover, not a
+#     package this role manages.
 #
 # Deliberately NOT included (considered, rejected):
 #   - netcat-traditional, pciutils: legitimate diagnostic tools, low footprint, plausible future

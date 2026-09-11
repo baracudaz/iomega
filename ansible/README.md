@@ -6,9 +6,18 @@ commands typed over a serial console.
 
 ## Layout
 
-Ten roles, applied in this order (`playbook.yml`):
+Eleven roles defined, in this order (`playbook.yml`), all applied:
 
-- **base** — utility packages (rsync, smartmontools, lm-sensors, gnupg), hostname.
+- **base** — utility packages (rsync, smartmontools, lm-sensors, gnupg, sysstat, u-boot-tools,
+  testdisk, tmux), hostname. testdisk/tmux were added 2026-09-10 after a manual
+  `apt-get install testdisk` on the box to investigate a repurposed 4TB drive
+  (`ST4000VN000-1H41`, added as `/dev/sda`) that showed as effectively empty (4.4MB used of
+  3.7TB, only Windows `System Volume Information` visible) — raw sector sampling found dense
+  non-zero data up to ~2TB in, consistent with a quick format rather than a wipe, so photorec
+  (same Debian package as testdisk) is expected to be used for an actual carve. Tracked here so
+  these tools survive a reprovision instead of being manual, undocumented installs; tmux is what
+  lets photorec's ncurses TUI be driven/monitored non-interactively over SSH (`tmux
+  capture-pane -e` preserves the ANSI highlight codes needed to read menu selection state).
 - **swap** — swapfile creation and persistence.
 - **security** — sudo/ufw/unattended-upgrades packages, admin user's sudo-group membership,
   explicit sshd policy, firewall rules.
@@ -18,20 +27,18 @@ Ten roles, applied in this order (`playbook.yml`):
   its `PROGRAM` directive), smartd alerts (via `-M exec`, smartd configured against both disks by
   stable `/dev/disk/by-id` path with a weekly long self-test schedule), and an lm-sensors hardware
   alarm-bit check on a systemd timer. Depends on `smartmontools`/`lm-sensors` from `base`. **The
-  real ntfy topic lives in `ansible/host_vars/iomega.yml` (gitignored, not this repo)** — it's a
+  real ntfy topic lives in `ansible/host_vars/iomega-sk.yml` (gitignored, not this repo)** — it's a
   bearer secret: anyone who knows it can read your alerts or post fake ones on public ntfy.sh.
   `defaults/main.yml`'s placeholder deliberately fails loudly (curl 404s) if you forget to set it.
-- **motd** — installs [fastfetch](https://github.com/fastfetch-cli/fastfetch) as the SSH login
-  banner, dropped in as `/etc/update-motd.d/10-fastfetch`. Chosen over neofetch (archived upstream
-  as of 2024, and a bash script that forks a separate external command per data point) — fastfetch
-  is a single actively-maintained C binary, which matters on this box's single 400-BogoMIPS core.
-  Relies on Debian's stock `/etc/pam.d/sshd` (ships `session optional pam_motd.so
-  motd=/run/motd.dynamic`, which runs every `/etc/update-motd.d/*` script per login and caches the
-  result) rather than touching `pam.d` or `sshd_config` itself — nothing added here risks the box's
-  only remote access path. `roles/motd/templates/config.jsonc.j2` picks NAS-relevant modules (OS,
-  kernel, uptime, packages, CPU/memory/swap, `/` and `/srv/data` usage, LAN IP) over fastfetch's
-  fancier but irrelevant defaults (GPU, battery, media player). Verified live over a real interactive SSH login (not just
-  running the script by hand) — the banner renders before the shell prompt, as expected.
+
+**No `motd` role (dropped 2026-09-11).** A fastfetch-based dynamic SSH login banner existed
+briefly but was removed after it turned out to be *why* SSH logins felt slow: Debian's stock
+`pam_motd` re-runs every `/etc/update-motd.d/*` script on every login, synchronously, before the
+shell prompt appears — and the banner's `PublicIP`/`Weather` modules were live third-party API
+calls sitting right in that critical path (confirmed live: ~1.1-1.6s for a real login vs. ~0.9s
+for the bare SSH handshake alone; login is back to ~0.85-0.97s with the role gone). A
+caching/background-refresh redesign was drafted but the simpler fix — no banner at all — is what
+actually got deployed. fastfetch and its `libyyjson0` dependency were purged from the box.
 - **tailscale** — installs the self-built `tailscale`/`tailscaled` binaries (pinned version +
   checksum in `defaults/main.yml`) from a GitHub Release, deploys the systemd unit and
   `/etc/default/tailscaled`, enables the service. Deliberately does **not** run `tailscale up` —
@@ -85,7 +92,17 @@ Ten roles, applied in this order (`playbook.yml`):
   single client UID would've been the wrong shape. Sticky bit means anyone can create a file,
   but only its own owner (or root) can delete/rename it — one person's copy job can't clobber
   another's.
-- **samba** — installs `samba` for macOS Finder and CIFS-mounting Linux clients (e.g. the rpi
+- **samba** — **re-enabled 2026-09-11**, reversing a 2026-09-10 decision to disable it for
+  being too heavy for this box's limited hardware (single-core ARMv5, 234MB RAM), especially
+  once Avahi/mDNS and the AD-DC-capable `samba` package pull in their full dependency trees. At
+  idle after this redeploy the box has 136MB available (234MB total, 97MB used, per `free -m`)
+  with `smbd`/`avahi-daemon` both active — healthy so far, but that's idle load, not the actual
+  file-transfer/Time Machine-backup load the original concern was about, so this is worth
+  watching rather than considered settled. If it does turn out too heavy again: `smbd`/
+  `avahi-daemon` can be stopped and disabled, the `samba`/`avahi-daemon` packages purged, and
+  the `ufw` rules for 445/5353 removed, without touching `/srv/data/shared`,
+  `/srv/data/<user>`, or `/srv/data/timemachine` — none of that data lives in the serving
+  software. Installs `samba` for macOS Finder and CIFS-mounting Linux clients (e.g. the rpi
   running k3s), with a two-tier IAM model built on top of a single unified data tree (one
   directory can be reached over either protocol, not separate copies per protocol — matching
   how NAS vendors like Synology/QNAP actually structure this):
@@ -125,7 +142,7 @@ Ten roles, applied in this order (`playbook.yml`):
   - Accounts are defined in `samba_users` (`roles/samba/defaults/main.yml`), each getting both a
     Unix system account (nologin, home dir only ever used as its Samba share target, never for
     login) and a Samba password set via `smbpasswd`. **Real passwords live in
-    `ansible/host_vars/iomega.yml`** (gitignored, same pattern as `monitoring_ntfy_topic`) — the
+    `ansible/host_vars/iomega-sk.yml`** (gitignored, same pattern as `monitoring_ntfy_topic`) — the
     shipped placeholder deliberately fails an `assert` rather than silently provisioning a share
     with a known password.
   - SMB is restricted to SMB2/3 only (no legacy SMB1). `nmbd` (NetBIOS name service) is masked
@@ -142,6 +159,52 @@ Ten roles, applied in this order (`playbook.yml`):
   auto-detection tooling, an unused local mail daemon that appeared as an upgrade side effect,
   etc.), then `autoremove`s whatever that orphans. Every entry's reasoning — and what was
   deliberately left out and why — lives in `roles/cleanup/defaults/main.yml`, not here.
+- **watch** — deploys pinned binaries of two sibling single-host diagnostics TUIs by the
+  same author, [matthart1983/diskwatch](https://github.com/matthart1983/diskwatch) (disk —
+  unifies `iostat`/`smartctl`/`lsblk`/`df` into one dashboard) and
+  [matthart1983/syswatch](https://github.com/matthart1983/syswatch) (system —
+  CPU/memory/disks/processes/power/services), to `/usr/local/bin/diskwatch` and
+  `/usr/local/bin/syswatch`. One role rather than two: same deploy pattern (a single
+  `copy` task each), same reason for existing, same story — worth keeping together instead
+  of duplicating the same explanation twice. **No upstream release covers this
+  hardware** for either — both only ship `aarch64`/`x86_64` binaries, and this box is
+  `armv5tel` (ARMv5TE, no hardware FPU), so `roles/watch/files/diskwatch-0.5.2-armv5te` and
+  `-/syswatch-0.10.0-armv5te` are binaries built by hand (2026-09-10) via `cross build
+  --target armv5te-unknown-linux-gnueabi` on the control machine — building on-device isn't
+  realistic (single ~400 BogoMIPS core, 234MB RAM total; Rust codegen for a TUI-sized
+  dependency tree needs far more than that). Both built clean with no source changes
+  needed. Checked into the role's `files/` dir like the other binary artifacts in this
+  repo, rather than fetched from a release like the `tailscale` role does — there's no
+  upstream release to point at for this target, unlike tailscale's self-built-and-published
+  pipeline. Verified live: `diskwatch --diag` (its non-interactive dump mode) correctly
+  reads both real disks (`sda`/`sdb`) and all three `mdX` arrays; syswatch, run in a scratch
+  `tmux` session, correctly rendered real CPU/memory/process data including a live insight
+  (`WARN load 2.65 on 1 cores`) that genuinely reflected the photorec carve running at the
+  time — neither was placeholder output. Bump `diskwatch_version`/`syswatch_version` in
+  `roles/watch/defaults/main.yml` and rebuild the relevant binary by hand for a future
+  version — this isn't auto-tracked.
+- **mediasort** — installs `python3-mutagen` (ID3v1/v2, Vorbis comment, and MP4-atom tag
+  reading), `mediainfo` (fallback container probe), `libimage-exiftool-perl` (EXIF/IPTC/XMP for
+  the photo carve output), and `jdupes` (exact-duplicate detection), added 2026-09-11 to support sorting the PhotoRec carve output from `/srv/data/shared/recovery`
+  (see the testdisk/photorec note under `base` above) into a meaningful `Music`/`Photos`/
+  `Documents` tree. The actual sort script isn't part of this playbook — it's a one-off
+  operation against live recovered data, not idempotent config — but the tools it depends on
+  are tracked here so they survive a reprovision instead of being an undocumented manual
+  `apt install` on the box.
+- **netwatch — attempted, blocked, not installed.** matthart1983's third sibling tool
+  (network diagnostics: `pcap`-based traffic inspection, connection attribution). Unlike
+  diskwatch/syswatch, this one hits a **hard architecture wall, not a missing dependency**:
+  netwatch's own source (`src/collectors/packets/mod.rs`, `src/event.rs`,
+  `src/remote/queue.rs`) uses `std::sync::atomic::AtomicU64` directly, and the
+  `armv5te-unknown-linux-gnueabi` Rust target has no 64-bit atomic support at all
+  (`target_has_atomic` tops out at 32-bit — this CPU generation predates the ISA guarantee
+  Rust's std relies on for lock-free 64-bit atomics). Building with `--no-default-features`
+  (which drops the optional `ebpf`/`netwatch-sdk` feature, sidestepping a separate,
+  lesser concern about needing a BPF-object-embedding toolchain) still fails on this, since
+  it's unconditional core code, not feature-gated. No workaround short of either patching
+  netwatch's source upstream to use `portable-atomic` (a real, common fix for exactly this
+  class of target, but a change to someone else's codebase, not something to do unilaterally)
+  or the upstream project adding armv5te support itself. Left uninstalled.
 
 ## macOS NFS client: Finder's "Connect to Server" — fixed
 
@@ -207,9 +270,19 @@ hashing ~47MB there routinely takes several minutes even when nothing's actually
 - **Kernel management.** Installing/updating bodhi's kirkwood-tld kernel and rebuilding
   `uImage`/`uInitrd` is a multi-step, device-specific process (see `../docs/boot.md`) involving a
   reboot and U-Boot interaction — not something to automate blind against production storage.
-- **Adding the second disk to the RAID arrays** (`mdadm --add`). A live, carefully-sequenced task
-  done by hand once the pending data copy off the old disk is confirmed complete — see the
-  project's plan notes, not a routine idempotent playbook task.
+- **Adding the second disk to the RAID arrays** (`mdadm --add`). A live, carefully-sequenced,
+  by-hand task, not a routine idempotent playbook task. **Stage 1 done 2026-09-11**: `md0`/`/boot`
+  and `md1`/`/` are now real 2-disk mirrors (`sdb`'s original 1TB disk + a repartitioned-to-match
+  `sda`, 4TB) — partitioned via `sfdisk` to exactly replicate `sdb`'s MBR layout (`sda` was wiped
+  from its prior GPT/exFAT state first; its earlier contents were a completed, already-sorted
+  PhotoRec recovery, not live data), `mdadm --add`ed, resynced, then verified by an actual reboot
+  with both disks attached — see `docs/boot.md`'s "Verified 2026-09-11" note. **`md2`/`/srv/data`
+  (912GB) is deliberately still degraded, single-disk** — that mirror + its own reboot-survival
+  test is a separate, later pass (a multi-hour resync, staged intentionally after the smaller
+  boot/root test proved the two-disk boot chain safe). Also note: this device's U-Boot can't read
+  GPT and MBR caps out around ~2TiB regardless of physical disk size — see `docs/boot.md` for the
+  full detail — so even once `md2` is mirrored onto the 4TB disk, usable capacity there tops out
+  around ~1.95TiB, not the full drive.
 - ~~RAID/SMART/sensor alerts~~ — **implemented, see the `monitoring` role above** (ntfy.sh push
   notifications, chosen 2026-08-26 over local-only mail or an external SMTP relay).
 - **Tailscale login.** The `tailscale` role installs and runs `tailscaled`, but deliberately does

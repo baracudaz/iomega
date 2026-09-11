@@ -1,6 +1,6 @@
 ---
 - name: Configure Iomega ix2-dl Debian NAS
-  hosts: iomega
+  hosts: iomega-sk
   become: true
   roles:
     - role: base
@@ -13,8 +13,6 @@
       tags: tuning
     - role: monitoring
       tags: monitoring
-    - role: motd
-      tags: motd
     - role: tailscale
       tags: tailscale
     - role: nfs
@@ -23,3 +21,7 @@
       tags: samba
     - role: cleanup
       tags: cleanup
+    - role: watch
+      tags: watch
+    - role: mediasort
+      tags: mediasort
