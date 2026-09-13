@@ -6,14 +6,13 @@
 # new upstream stable releases daily. Bumping tailscale_version requires also updating
 # the two checksums below — get them with, e.g.:
 #   curl -sL https://github.com/baracudaz/tailscale-builds/releases/download/<version>/tailscale-linux-armv5 | shasum -a256
-tailscale_version: v1.102.3
+tailscale_version: v1.102.4
 tailscale_release_repo: baracudaz/tailscale-builds
-# Rebuilt 2026-09-04 with ts_omit_* feature-tag trimming (see
-# github.com/baracudaz/tailscale-builds .github/workflows/build.yaml) — same v1.102.3
-# source, smaller/leaner binaries. Checksums changed accordingly; bump both together
-# whenever the build workflow's BUILD_TAGS changes, even if tailscale_version doesn't.
-tailscale_cli_sha256: e8f5d1dcff4693ccde138d94080246a5f8e59778b7421b84900161853c17de11
-tailscaled_sha256: c98667ebdc58118e7c4e8a477045a4584ee4a2527892533e6b29c2a40178b31f
+# Same ts_omit_* feature-tag trimming as the v1.102.3 rebuild (see
+# github.com/baracudaz/tailscale-builds .github/workflows/build.yaml) — the fork's daily
+# build workflow carries the trimming forward automatically for each new upstream release.
+tailscale_cli_sha256: 5bcbf1d135393174f68b1a57bab1542d3ea5c467a1ca5dd68052d0f1786beb77
+tailscaled_sha256: 703bb6de7bfb50c44c5cd963fad1ff773d3b6bf0fa000d81c404f702785fbc92
 
 tailscale_port: 41641
 
