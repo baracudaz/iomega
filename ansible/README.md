@@ -6,31 +6,36 @@ commands typed over a serial console.
 
 ## Layout
 
-Ten roles defined, in this order (`playbook.yml`), all applied:
+Eleven roles defined, in this order (`playbook.yml`), all applied:
 
-- **base** — utility packages (rsync, smartmontools, lm-sensors, gnupg, sysstat, u-boot-tools,
-  testdisk, tmux), hostname. testdisk/tmux were added 2026-09-10 after a manual
-  `apt-get install testdisk` on the box to investigate a repurposed 4TB drive
-  (`ST4000VN000-1H41`, added as `/dev/sda`) that showed as effectively empty (4.4MB used of
-  3.7TB, only Windows `System Volume Information` visible) — raw sector sampling found dense
-  non-zero data up to ~2TB in, consistent with a quick format rather than a wipe, so photorec
-  (same Debian package as testdisk) is expected to be used for an actual carve. Tracked here so
-  these tools survive a reprovision instead of being manual, undocumented installs; tmux is what
-  lets photorec's ncurses TUI be driven/monitored non-interactively over SSH (`tmux
-  capture-pane -e` preserves the ANSI highlight codes needed to read menu selection state).
-  Also (2026-09-13): `--force-unsafe-io` for dpkg (speed on this weak CPU); a compat symlink
-  working around an upstream `initramfs-tools` bug that breaks `update-initramfs` outright on
-  armel (its `kmod` hook hardcodes a `*-linux-gnu` glob that never matches armel's
-  `-linux-gnueabi` triplet); forcing `COMPRESS=gzip` in `initramfs.conf`; and a
-  `/etc/initramfs/post-update.d/` hook that auto-builds (but deliberately does not auto-deploy
-  to NAND) a fresh `uInitrd` after every `update-initramfs` run — see `docs/boot.md`'s NAND
-  section for why the actual NAND write stays a manual, reviewed step on this device.
+- **base** — generic bootstrap: utility packages (rsync, smartmontools, lm-sensors, gnupg,
+  sysstat, testdisk, tmux), `--force-unsafe-io` for dpkg (speed on this weak CPU), hostname.
+  testdisk/tmux were added 2026-09-10 after a manual `apt-get install testdisk` on the box to
+  investigate a repurposed 4TB drive (`ST4000VN000-1H41`, added as `/dev/sda`) that showed as
+  effectively empty (4.4MB used of 3.7TB, only Windows `System Volume Information` visible) —
+  raw sector sampling found dense non-zero data up to ~2TB in, consistent with a quick format
+  rather than a wipe, so photorec (same Debian package as testdisk) is expected to be used for
+  an actual carve. Tracked here so these tools survive a reprovision instead of being manual,
+  undocumented installs; tmux is what lets photorec's ncurses TUI be driven/monitored
+  non-interactively over SSH (`tmux capture-pane -e` preserves the ANSI highlight codes needed
+  to read menu selection state).
+- **uboot** — split out from `base` 2026-09-13 for cohesion (NAND/U-Boot-adjacent tooling vs.
+  generic bootstrap). Installs `u-boot-tools` (`mkimage`); configures `fw_env.config` against
+  the correct MTD env partitions; a compat symlink working around an upstream `initramfs-tools`
+  bug that breaks `update-initramfs` outright on armel (its `kmod` hook hardcodes a
+  `*-linux-gnu` glob that never matches armel's `-linux-gnueabi` triplet); forces
+  `COMPRESS=gzip` in `initramfs.conf`; and installs a `/etc/initramfs/post-update.d/` hook that
+  auto-builds (but deliberately does not auto-deploy to NAND) a fresh `uInitrd` after every
+  `update-initramfs` run — see `docs/boot.md`'s NAND section for why the actual NAND write stays
+  a manual, reviewed step on this device.
 - **swap** — swapfile creation and persistence.
 - **security** — sudo/ufw packages, admin user's sudo-group membership, explicit sshd policy,
-  firewall rules. Also actively removes `unattended-upgrades` (installed and enabled here until
-  2026-09-13, when its background apt runs were found visibly hogging CPU on this box's single
-  weak ARMv5 core during other work — see `docs/boot.md`). Manual `apt upgrade` is used instead;
-  the old config tasks are left commented out in `tasks/main.yml` in case it's ever re-enabled.
+  firewall rules. `unattended-upgrades` was installed/enabled here until 2026-09-13, when its
+  background apt runs were found visibly hogging CPU on this box's single weak ARMv5 core during
+  other work (see `docs/boot.md`) — removed and purged manually; manual `apt upgrade` is used
+  instead. No ansible task re-removes it (nothing else in this playbook would reinstall it); if
+  it's ever wanted back, its old config is recoverable from git history (`git log -p` on this
+  role).
 - **tuning** — journald size cap, `vm.swappiness`, RAID resync floor, one-time `sensors-detect`
   (depends on `lm-sensors` from the `base` role, hence the ordering).
 - **monitoring** — push notifications via [ntfy.sh](https://ntfy.sh) for mdadm RAID events (via
@@ -178,8 +183,8 @@ actually got deployed. fastfetch and its `libyyjson0` dependency were purged fro
   `copy` task each), same reason for existing, same story — worth keeping together instead
   of duplicating the same explanation twice. **No upstream release covers this
   hardware** for either — both only ship `aarch64`/`x86_64` binaries, and this box is
-  `armv5tel` (ARMv5TE, no hardware FPU), so `roles/watch/files/diskwatch-0.5.2-armv5te` and
-  `-/syswatch-0.10.0-armv5te` are binaries built by hand (2026-09-10) via `cross build
+  `armv5tel` (ARMv5TE, no hardware FPU), so `roles/watch/files/diskwatch-0.5.4-armv5te` and
+  `syswatch-0.14.1-armv5te` are binaries built by hand via `cross build
   --target armv5te-unknown-linux-gnueabi` on the control machine — building on-device isn't
   realistic (single ~400 BogoMIPS core, 234MB RAM total; Rust codegen for a TUI-sized
   dependency tree needs far more than that). Both built clean with no source changes
@@ -198,20 +203,13 @@ actually got deployed. fastfetch and its `libyyjson0` dependency were purged fro
   from `/srv/data/shared/recovery` into a `Music`/`Photos`/`Documents` tree — that sort completed
   (86,323 files organized, 3,597 duplicates removed) and the role/packages were no longer needed,
   so both were removed rather than left as dead weight.
-- **netwatch — attempted, blocked, not installed.** matthart1983's third sibling tool
-  (network diagnostics: `pcap`-based traffic inspection, connection attribution). Unlike
-  diskwatch/syswatch, this one hits a **hard architecture wall, not a missing dependency**:
-  netwatch's own source (`src/collectors/packets/mod.rs`, `src/event.rs`,
-  `src/remote/queue.rs`) uses `std::sync::atomic::AtomicU64` directly, and the
-  `armv5te-unknown-linux-gnueabi` Rust target has no 64-bit atomic support at all
-  (`target_has_atomic` tops out at 32-bit — this CPU generation predates the ISA guarantee
-  Rust's std relies on for lock-free 64-bit atomics). Building with `--no-default-features`
-  (which drops the optional `ebpf`/`netwatch-sdk` feature, sidestepping a separate,
-  lesser concern about needing a BPF-object-embedding toolchain) still fails on this, since
-  it's unconditional core code, not feature-gated. No workaround short of either patching
-  netwatch's source upstream to use `portable-atomic` (a real, common fix for exactly this
-  class of target, but a change to someone else's codebase, not something to do unilaterally)
-  or the upstream project adding armv5te support itself. Left uninstalled.
+- **netwatch — installed 2026-09-13.** matthart1983's third sibling tool (network
+  diagnostics: `pcap`-based traffic inspection, connection attribution). Previously blocked by
+  a hard architecture wall — its source used `std::sync::atomic::AtomicU64` directly, and the
+  `armv5te-unknown-linux-gnueabi` Rust target has no native 64-bit atomic support
+  (`target_has_atomic` tops out at 32-bit on this CPU generation) — that blocker no longer
+  applies as of the build now checked into `roles/watch/files/netwatch-0.31.2-armv5te`, deployed
+  and confirmed running on the live host.
 
 ## macOS NFS client: Finder's "Connect to Server" — fixed
 

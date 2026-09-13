@@ -1,0 +1,89 @@
+---
+# mkimage, needed both for manual NAND boot-image builds (docs/boot.md) and by the
+# post-update hook below.
+- name: Install u-boot-tools (mkimage)
+  ansible.builtin.apt:
+    name: u-boot-tools
+    state: present
+    update_cache: true
+    cache_valid_time: 3600
+
+# The package ships only an example config (fw_env.config.example-like content under
+# /usr/share/doc/) — /etc/fw_env.config itself doesn't exist by default and must be
+# authored per-board. This box's NAND is already partitioned into separate MTD
+# devices by the kernel (see `cat /proc/mtd`: mtd1=uboot_env, mtd2=uboot_env2), so
+# each env copy starts at offset 0 of its own device — NOT at its absolute
+# whole-flash byte offset (0xa0000/0xc0000, see docs/boot.md's NAND MTD table),
+# which is what you'd use if fw_printenv addressed the raw undivided flash instead.
+# Confirmed live: a config using the whole-flash offsets against these
+# partition-relative devices fails outright ("Cannot read environment").
+# fw_env.config's columns are tab-separated by format convention, not an accidental tab.
+- name: Configure fw_printenv/fw_setenv against the correct MTD env partitions  # noqa: no-tabs
+  ansible.builtin.copy:
+    dest: /etc/fw_env.config
+    mode: '0644'
+    content: |
+      # MTD device name	Device offset	Env. size	Flash sector size
+      /dev/mtd1	0x0	0x20000	0x20000
+      /dev/mtd2	0x0	0x20000	0x20000
+
+# initramfs-tools' kmod hook hardcodes /usr/lib/*-linux-gnu/liblzma.so.5 (and
+# libzstd.so.1) — a glob that only matches multiarch triplets ending in exactly
+# "-linux-gnu" (x86_64, aarch64, ...), never armel's "-linux-gnueabi". This breaks
+# `update-initramfs` outright on any armel system running trixie's initramfs-tools
+# (confirmed 2026-09-13, first time this project ever ran it) — a real upstream bug,
+# not anything specific to this box's config. Minimal fix: a compat symlink so the
+# glob resolves to the real (correctly-named) directory.
+- name: Work around initramfs-tools' broken armel multiarch glob (upstream bug)
+  ansible.builtin.file:
+    src: arm-linux-gnueabi
+    dest: /usr/lib/arm-linux-gnu
+    state: link
+
+# This ancient 2011-era U-Boot (1.1.4) loads ramdisk images verbatim into RAM for
+# `bootm` — decompression happens kernel-side via its own auto-detection, so in
+# principle the initrd's compression format shouldn't matter. In practice, trixie's
+# initramfs-tools defaults to COMPRESS=zstd when it can't find a kernel config file
+# to check CONFIG_RD_ZSTD against (this kernel ships none) — forcing gzip here keeps
+# the initrd format matching every other tool/assumption in this project's own
+# `docs/boot.md` (mkimage's -C gzip, the historical convention), even though it may
+# not be strictly required.
+- name: Force gzip initramfs compression (matches this project's NAND boot tooling)
+  ansible.builtin.lineinfile:
+    path: /etc/initramfs-tools/initramfs.conf
+    regexp: '^COMPRESS='
+    line: 'COMPRESS=gzip'
+
+# Runs automatically after every `update-initramfs` (kernel updates, mdadm.conf
+# changes, etc.) and rebuilds the wrapped uInitrd — but deliberately stops there.
+# The actual NAND write (flash_erase/nandwrite on the live `initrd` MTD partition)
+# stays a manual, deliberate step: this device has no serial-recovery fallback
+# (no kwboot), so auto-writing a possibly-bad initrd to the only bootable copy on
+# every routine kernel update is a real bricking risk, not a hypothetical one —
+# see docs/boot.md's "Populating the NAND installer partition" section for why
+# this device's recovery story is unusually fragile.
+- name: Ensure the initramfs post-update hook directory exists
+  ansible.builtin.file:
+    path: /etc/initramfs/post-update.d
+    state: directory
+    mode: '0755'
+
+- name: Install post-update hook to auto-build (not auto-deploy) uInitrd
+  ansible.builtin.copy:
+    dest: /etc/initramfs/post-update.d/kirkwood-uinitrd
+    mode: '0755'
+    content: |
+      #!/bin/sh
+      # Invoked by update-initramfs as: $0 <kernel-version> <path-to-new-initrd.img>
+      # Builds a NAND-ready uInitrd and drops it for manual review/nandwrite -- see
+      # docs/boot.md's "Booting from NAND" section for the actual write procedure.
+      set -e
+      version="$1"
+      initrd_path="$2"
+      out=/boot/uInitrd-staged
+
+      mkimage -A arm -O linux -T ramdisk -C gzip -a 0 -e 0 \
+        -n "initramfs" -d "$initrd_path" "$out"
+
+      /usr/local/sbin/notify-ntfy.sh "iomega: new initrd staged" \
+        "update-initramfs rebuilt the initrd for kernel $version. A new uInitrd is staged at $out -- review and nandwrite it manually (docs/boot.md) if it should go live."
