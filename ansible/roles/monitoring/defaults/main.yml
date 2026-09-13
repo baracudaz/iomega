@@ -7,9 +7,14 @@ monitoring_ntfy_server: https://ntfy.sh
 
 # Stable /dev/disk/by-id paths (serial-keyed), not /dev/sdX — device letters are not
 # stable across reboots on this box once a second disk is attached.
+#
+# 2026-09-13: the original 1TB WD10EADS drive (serial WD-WCAV58156588) was physically
+# replaced by a second 4TB ST4000VN000 (serial Z3016JDN, ex-AirPort-Time-Capsule drive,
+# repurposed as the second mirror member for sda1/sda2 — see docs/boot.md's re-mirror
+# section). The WD drive is gone for good; monitoring now covers both actual 4TB drives.
 monitoring_smart_devices:
   - /dev/disk/by-id/ata-ST4000VN000-1H4168_Z302H0TE
-  - /dev/disk/by-id/ata-WDC_WD10EADS-42P6B0_WD-WCAV58156588
+  - /dev/disk/by-id/ata-ST4000VN000-1H4168_Z3016JDN
 
 # smartd self-test schedule (smartd.conf -s regex syntax): short daily at 02:00,
 # long (full surface scan) weekly on Saturday at 03:00.
