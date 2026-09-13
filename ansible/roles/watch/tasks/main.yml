@@ -14,3 +14,11 @@
     owner: root
     group: root
     mode: '0755'
+
+- name: Install netwatch
+  ansible.builtin.copy:
+    src: "netwatch-{{ netwatch_version }}-armv5te"
+    dest: /usr/local/bin/netwatch
+    owner: root
+    group: root
+    mode: '0755'
