@@ -28,6 +28,11 @@ second, 4TB disk (`sda`) — unmirrored for now, since only one 4TB drive is ava
 `docs/boot.md`'s "Root and /srv/data migration to sda" section). `/boot` is unaffected, still
 `md0`. The old `sdb`-based arrays are kept intact, unwiped, as a rollback safety net.
 
+Also as of 2026-09-13, the NAND `installer` partition (previously reserved but empty) now holds a
+boot-tested Debian Installer (bookworm kirkwood netboot build — trixie has no armel installer at
+all), invoked via a separate `bootcmd_installer` env var that is deliberately not wired into
+`bootcmd` — see `docs/boot.md`'s "Populating the NAND installer partition" section.
+
 **Important distinction:** the visually near-identical **ix2-ng** is a *different* device — same
 enclosure and SoC, but only a 1MB SPI flash chip, booting instead from boot sectors written
 directly onto the hard drives. It is not interchangeable with the ix2-dl. (Confusingly, the stock

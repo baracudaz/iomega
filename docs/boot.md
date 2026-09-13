@@ -28,6 +28,12 @@ single-disk/unmirrored — re-mirroring onto a second 4TB drive is separate, not
 work. The old `sdb5`/`md1` (root) and `sdb6`/`md2` (data) arrays are left fully intact,
 degraded-but-healthy, as a rollback safety net.
 
+**Update (2026-09-13, later the same day):** the previously-reserved NAND `installer` partition
+is now populated with a real, boot-tested Debian Installer (bookworm kirkwood netboot build) —
+see "Populating the NAND installer partition" below. Physical/serial console access also became
+available this session, which is what made a real (if unpersisted) boot test of this practical to
+verify safely.
+
 ## Overview
 
 1. Boot the official Debian bookworm armel/kirkwood netboot installer (`vmlinuz-6.1.0-50-marvell`
@@ -360,11 +366,11 @@ to the live running tree — is kept in this repo alongside the edited version):
 | --- | --- | --- | --- |
 | `kernel` | 0x100000 | 16MB | ~3x the actual `uImage` (5.6MB) — headroom for future kernel updates |
 | `initrd` | 0x1100000 | 32MB | ~3x the actual `uInitrd` (11.3MB) — headroom for initramfs growth |
-| `installer` | 0x3100000 | ~975MB | **Reserved, not yet populated** — see below |
+| `installer` | 0x3100000 | ~975MB | Debian Installer, boot-tested — see "Populating the NAND installer partition" below |
 
 Intended for a Debian installer/rescue image, bootable straight from NAND independent of the SATA
 disks entirely — upgrading physical-access recovery from "limited U-Boot prompt" to "a real
-installer/rescue shell." Populating it is separate, not-yet-done follow-on work.
+installer/rescue shell." Populated 2026-09-13, see below.
 
 All offsets/sizes are eraseblock-aligned (128KB erase size: `16MB/128KB=128`, `32MB/128KB=256`,
 `~975MB/128KB=7800`, all exact).
@@ -418,6 +424,105 @@ testing the smallest-blast-radius step first):
    mounted correctly, all three RAID arrays healthy and unchanged, `systemd` started cleanly with
    no errors anywhere in the boot log. **`bootcmd` currently = `run bootcmd_nand` — the box now
    boots entirely from NAND**, independent of the SATA disks' partition tables.
+
+### Populating the NAND installer partition (2026-09-13)
+
+**Motivation**: the `installer` partition (975MB, above) was reserved but empty since the
+2026-09-11 resize. With physical/serial console access available this session (see the top-of-doc
+update), a real boot test of a NAND-resident rescue environment became practical to verify safely
+for the first time — upgrading physical-access recovery from "bare U-Boot prompt" to "a real
+installer/rescue shell," independent of the SATA disks entirely.
+
+**Trixie has no armel installer at all.** Checked both `deb.debian.org/debian/dists/trixie/main/`
+(installer directories exist for amd64/arm64/armhf/ppc64el/riscv64/s390x — no `installer-armel`)
+and `cdimage.debian.org/cdimage/release/current/armel/` (404). Armel *packages* are still built
+for trixie (`main/binary-armel/` and `main/debian-installer/binary-armel/` both exist in the
+Release file), but the actual bootable installer images were never built for this release —
+trixie's own release notes position it as armel's last supported release, and it looks like the
+installer build for this architecture didn't happen even for that final cycle. bookworm's kirkwood
+netboot installer (`vmlinuz-6.1.0-50-marvell` + `initrd.gz`, the same files this project's original
+bring-up used — see "Overview" above) is the only real option, and it serves the rescue-shell
+purpose just as well: the installer's own release version barely matters for disaster recovery, and
+it can still target a trixie mirror if ever used to actually reinstall.
+
+**The installer needs its own separate kernel+initrd — the currently-running kernel can't be
+reused.** Two reasons: the installer's `initrd.gz` is a busybox+udebs environment version-matched
+specifically to `vmlinuz-6.1.0-50-marvell` (module versions embedded in it wouldn't match a
+different kernel build), and its purpose is completely different anyway — it *is* the whole
+environment (interactive partitioning/install UI), not something that hands off to an
+already-installed root filesystem like the regular `kernel`/`initrd` do. The device tree
+(`kirkwood-lenovo-ix2-dl-resized.dtb`) *is* reusable, though — it describes the hardware, not
+anything kernel-version-specific, so it gets appended to the installer's `vmlinuz` the same way as
+the main kernel.
+
+**No new device-tree edit or MTD partition needed.** U-Boot's `nand read.e` reads raw absolute
+offsets — it doesn't care about Linux's MTD partition boundaries, which are purely a
+device-tree/Linux-side view. So the installer's kernel and initrd are simply two sub-regions
+carved out of the `installer` partition's existing byte range by hand, the same way `kernel` and
+`initrd` are themselves carved out of the whole chip:
+
+| Region | Absolute offset | Offset within `installer` (`mtd5`) | Size | Actual content |
+| --- | --- | --- | --- | --- |
+| installer kernel | 0x3100000 | 0x0 | 16MB | `vmlinuz-6.1.0-50-marvell` + DTB, wrapped as uImage (2.66MB actual) |
+| installer initrd | 0x4100000 | 0x1000000 | 32MB | bookworm netboot `initrd.gz`, wrapped as uInitrd (12.18MB actual) |
+| *(unused)* | 0x6100000 | 0x3000000 | ~927MB | left free inside `installer` for future use |
+
+Procedure:
+
+```bash
+# on the NAS — download the official bookworm kirkwood netboot images
+curl -sL -o vmlinuz-6.1.0-50-marvell "https://deb.debian.org/debian/dists/bookworm/main/installer-armel/current/images/kirkwood/netboot/vmlinuz-6.1.0-50-marvell"
+curl -sL -o initrd.gz "https://deb.debian.org/debian/dists/bookworm/main/installer-armel/current/images/kirkwood/netboot/initrd.gz"
+
+# build, same recipe as "Create images" above
+cat vmlinuz-6.1.0-50-marvell kirkwood-lenovo-ix2-dl-resized.dtb > installer-zImage.fdt
+mkimage -A arm -O linux -T kernel -C none -a 0x00008000 -e 0x00008000 \
+  -n "Debian-Installer-bookworm-6.1.0-50-marvell" -d installer-zImage.fdt installer-uImage
+mkimage -A arm -O linux -T ramdisk -C gzip -a 0 -e 0 \
+  -n "installer-initrd" -d initrd.gz installer-uInitrd
+
+# erase (whole-partition flash_erase hit real factory bad blocks well past our target
+# offsets — normal for NAND that's sat untouched for over a decade; erasing just the
+# two target regions instead avoided that entirely)
+flash_erase -q /dev/mtd5 0x0 128        # 128 eraseblocks = 16MB @ offset 0
+flash_erase -q /dev/mtd5 0x1000000 256  # 256 eraseblocks = 32MB @ offset 16MB
+
+# write — -p (pad to page boundary) is required since neither image size is a multiple
+# of the 2048-byte page size; omitting it aborts partway with "Data was only partially
+# written due to error"
+nandwrite -q -p /dev/mtd5 installer-uImage
+nandwrite -q -p -s 0x1000000 /dev/mtd5 installer-uInitrd
+```
+
+Verified via full read-back (`nanddump -l <exact size> -f dump.bin`, then `cmp`): **both images
+matched byte-for-byte** at their respective offsets.
+
+**Boot-tested live over serial, fully unpersisted** (RAM-only `setenv`, no `saveenv` — possible
+for the first time this session thanks to the newly-available serial console; see "Serial console
+is still needed for..." above for why every prior boot-chain cutover here had to be a real,
+persisted reboot test instead):
+
+```
+setenv bootcmd_installer 'nand read.e 0x00800000 0x3100000 0x1000000; nand read.e 0x03000000 0x4100000 0x2000000; setenv bootargs console=ttyS0,115200; bootm 0x00800000 0x03000000'
+run bootcmd_installer
+```
+
+No `root=` in `bootargs` — the installer's initrd *is* the whole environment, it doesn't hand off
+to a separate root filesystem the way the regular boot chain does. Same RAM addresses as
+`bootcmd_nand`/`bootcmd_sata` (`0x00800000`/`0x03000000`), already satisfying the Gotcha #2
+headroom requirement.
+
+**Result: fully successful.** Both images loaded and checksummed OK by U-Boot, the kernel booted,
+and the real Debian Installer came up completely — whiptail language-selection menu, the
+installer's usual multi-console tab layout (`1 installer / 2 shell / 3 shell / 4 log`), full
+network stack. Exited via a physical power-cycle (safest option since the installer hadn't
+touched any real storage yet — no in-session shell/reboot command was needed or attempted). After
+power-cycling, the box came back up cleanly on the normal `bootcmd_nand` path exactly as before:
+confirmed via `fw_printenv bootcmd` (still `run bootcmd_nand`) and `fw_printenv bootcmd_installer`
+(empty — never persisted, exactly as intended), `df`/`dmesg` clean. **`bootcmd_installer` is set
+up and proven working, but deliberately not wired into `bootcmd`** — it's meant to be invoked by
+hand at the U-Boot prompt only when actually needed for recovery, the same way `bootcmd_sata`
+exists as a fallback without ever being the default.
 
 ### Reading/writing the U-Boot environment from Linux (`fw_printenv`/`fw_setenv`)
 
