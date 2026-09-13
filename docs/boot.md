@@ -34,6 +34,13 @@ see "Populating the NAND installer partition" below. Physical/serial console acc
 available this session, which is what made a real (if unpersisted) boot test of this practical to
 verify safely.
 
+**Update (2026-09-13, evening):** `/` is now genuinely mirrored again — `sda1`/`sda2` are no
+longer single-disk. The original 1TB WD drive was physically swapped out for a second, matching
+4TB drive (repurposed from an AirPort Time Capsule), `sdb` was re-partitioned to match `sda`
+exactly, and both are re-mirrored via mdadm. See "Re-mirroring root and /srv/data onto a second
+4TB drive" below for the full procedure, including a real upstream `initramfs-tools` bug hit
+along the way (breaks `update-initramfs` outright on armel).
+
 ## Overview
 
 1. Boot the official Debian bookworm armel/kirkwood netboot installer (`vmlinuz-6.1.0-50-marvell`
@@ -688,20 +695,162 @@ restarted services (`smbd`, `nfs-kernel-server`, `winbind`, `avahi-daemon`, both
 back `active`. Old `sdb6`/`md2` was left fully intact and unwiped — 869GB of now-duplicate data as
 a rollback safety net; decommissioning it is a separate, later decision.
 
+### Current state as of this migration (superseded — see "Re-mirroring" below)
+
+At this point `/` and `/srv/data` were single-disk (`sda` only) with no redundancy, and the
+original `sdb` (1TB WD drive) was kept intact as an interim rollback net. Physical/serial console
+access became available this session, lowering the risk of future boot-chain work. All of this
+was true only until later the same day — see the next section for what actually happened to
+`sdb` and the redundancy gap.
+
+## Re-mirroring root and /srv/data onto a second 4TB drive (2026-09-13, evening)
+
+**What changed physically**: while investigating whether `sda` could boot independently of
+`sdb` (a planned test — see "Still not verified: booting from *only* the second disk" earlier in
+this doc), the original 1TB WD drive was physically removed and, in the same session, a second,
+matching 4TB drive (`ST4000VN000-1H4168`, serial `Z3016JDN`) was installed in its place. That
+drive turned out to be a repurposed AirPort Time Capsule internal disk — GPT-partitioned with
+Apple's own `APconfig`/`APswap`/`Shared` (`APdata`) HFS+ layout, holding ~2.5TB of old Time
+Machine backups and a `Shared` folder. The `Shared` folder (234GB) was copied into
+`/srv/data/shared` for review; the Time Machine backups themselves were not wanted and the drive
+was wiped and repurposed as the second mirror member below.
+
+**The failover test this was originally for got a real answer along the way**: booting with the
+old `sdb` entirely absent (replaced by the Time Capsule drive, not yet touched) worked cleanly —
+`sda1`/`sda2` mounted fine independent of any second disk, confirming `sda` alone is bootable.
+The one gap found: `/boot` (`md0`, sole member `sdb1`, no `nofail`) blocked on the missing device
+for its full timeout. Fixed by adding `nofail,x-systemd.device-timeout=5` to `/boot`'s `fstab`
+line — a boot with `/boot` genuinely absent now skips it in ~5s instead of stalling.
+
+### Partitioning and root re-mirror
+
+```bash
+# wipe the Time Capsule's HFS+ layout, partition to exactly match sda
+wipefs -a /dev/sdb1 /dev/sdb2 /dev/sdb3
+wipefs -a /dev/sdb
+sfdisk /dev/sdb <<'EOF'
+label: gpt
+unit: sectors
+
+/dev/sdb1 : start=2048, size=67108864, type=0FC63DAF-8483-4772-8E79-3D69D8477DE4, name="root"
+/dev/sdb2 : type=0FC63DAF-8483-4772-8E79-3D69D8477DE4, name="data"
+EOF
+
+# degraded array on the new (blank) sdb1, then clone current root onto it
+mdadm --create /dev/md1 --level=1 --raid-devices=2 --metadata=1.2 /dev/sdb1 missing
+mkfs.ext4 -L root /dev/md1
+mount /dev/md1 /mnt/newroot
+rsync -aHAXx --numeric-ids --info=progress2 / /mnt/newroot/
+rm -f /mnt/newroot/swapfile; fallocate -l 1G /mnt/newroot/swapfile
+chmod 600 /mnt/newroot/swapfile; mkswap /mnt/newroot/swapfile
+# edit /mnt/newroot/etc/fstab: root's UUID -> md1's new filesystem UUID
+```
+
+`/etc/mdadm/mdadm.conf`'s three stale `ARRAY` lines (from the original WD drive's arrays, which
+are never coming back) were removed and replaced with one entry for the new `md1`. Unlike the
+2026-09-13 (daytime) root migration to plain `sda1`, **this cutover does need an initrd rebuild**:
+root is a real mdadm array now, and the early-boot `mdadm --assemble` step needs `md1` in its
+embedded `mdadm.conf` to find it.
+
+### A real upstream `initramfs-tools` bug (first `update-initramfs` run this project ever made)
+
+Rebuilding the initrd (`update-initramfs -u`) failed outright: the `kmod` hook hardcodes
+`copy_exec /usr/lib/*-linux-gnu/liblzma.so.5` (and `libzstd.so.1`) — a glob that only matches
+multiarch triplets ending in exactly `-linux-gnu` (`x86_64-linux-gnu`, `aarch64-linux-gnu`, ...),
+never armel's `-linux-gnueabi`. The real file exists at the correctly-named path
+(`/usr/lib/arm-linux-gnueabi/liblzma.so.5`) — purely a broken glob, not a missing dependency.
+Fixed with a compatibility symlink (now in the `base` ansible role):
+
+```bash
+ln -s arm-linux-gnueabi /usr/lib/arm-linux-gnu
+```
+
+Separately: this box's `initramfs.conf` had `COMPRESS=zstd` (trixie's default when it can't find
+a kernel config file to check `CONFIG_RD_ZSTD` against, which this kernel doesn't ship). Forced
+back to `COMPRESS=gzip` for consistency with this project's tooling conventions — though it turned
+out not to matter functionally: **this ancient 2011-era U-Boot doesn't decompress ramdisk images
+itself for `bootm`** — it loads the blob verbatim into RAM, and the *kernel* does its own
+auto-detected decompression during early boot, regardless of what the mkimage header declares.
+Confirmed by dumping the currently-live NAND initrd: its uImage header claims "gzip compressed"
+but the actual payload starts with zstd's magic bytes (`28 b5 2f fd`) — a mismatch that had
+already been booting fine the whole time. Also confirmed the initrd's modern two-segment
+structure (an uncompressed "early" cpio for firmware, concatenated with a compressed "main" cpio)
+is fine as-is — no need to collapse it into one stream; the kernel's own initramfs unpacking
+already handles concatenated segments natively.
+
+### Writing the new initrd, testing, and cutover
+
+```bash
+update-initramfs -u -k $(uname -r)
+mkimage -A arm -O linux -T ramdisk -C gzip -a 0 -e 0 \
+  -n "initramfs" -d /boot/initrd.img-<version> new-uInitrd
+flash_erase -q /dev/mtd4 0 0
+nandwrite -q -p /dev/mtd4 new-uInitrd   # -p pads to the 2048-byte page size
+```
+
+Verified byte-for-byte via `nanddump` + `cmp` as always. Staged in the same three-part discipline
+as the original NAND work, now upgraded by serial access:
+
+1. **Safety-check reboot with `root=` unchanged** (still the old `sda1` UUID) — proves the new
+   initrd alone doesn't break anything: it assembles `md1` in the background, but root still
+   mounts the untouched `sda1` exactly as before. Verified via a real reboot: `md1` came up
+   `active raid1 sdb1[0]` (degraded, as expected — `sda1` not added yet), root still on `sda1`,
+   zero errors.
+2. **Unpersisted root cutover test over serial** — the first genuinely unpersisted `bootcmd`-style
+   test this project has ever done (every prior cutover had to be a committed `fw_setenv` +
+   reboot, for lack of serial access):
+   ```
+   setenv bootcmd_nand 'nand read.e 0x00800000 0x100000 0x1000000; nand read.e 0x03000000 0x1100000 0x2000000; setenv bootargs console=ttyS0,115200 root=UUID=<md1-fs-uuid> rootdelay=10; bootm 0x00800000 0x03000000'
+   run bootcmd_nand
+   ```
+   Verified live over serial: root mounted from `md1`, zero errors, all without touching NAND
+   env at all.
+3. **Persisted for real** (`fw_setenv bootcmd_nand ...`, matching the tested value exactly) and
+   confirmed with an actual reboot — `/` on `md1`, clean boot, no errors.
+4. **Brought `sda1` into the array**: `mdadm --add /dev/md1 /dev/sda1` — full resync (`sda1`'s
+   content was already an identical clone from the rsync above, so nothing meaningful is lost,
+   just made redundant). Completed in ~4 minutes at ~137MB/s. Final state: `md1 [2/2] [UU]`,
+   both `sda1` and `sdb1` active sync.
+
+One cosmetic wrinkle, already seen once before in this project (see "md device renumbering"
+above): the array's internal superblock `Name` field still says `iomega:3` from when it was
+first created as `/dev/md3` before being renamed to `/dev/md1` (`mdadm --stop` +
+`mdadm --assemble /dev/md1 ...`, since only the runtime device node changes that way, not the
+superblock's own recorded name). Something during boot (likely a udev-triggered `mdadm.conf`
+regeneration) rewrote the conf file's device hint back to `/dev/md3` at one point — harmless,
+since array matching happens by UUID, but corrected back to `/dev/md1` for clarity.
+
+### Data re-mirror (Phase 2, same pattern, no boot-chain risk)
+
+`/srv/data` doesn't need any initrd/NAND changes — non-root arrays are assembled during normal
+userspace boot (`mdadm --assemble --scan` / incremental via udev), not the early initrd stage:
+
+```bash
+mdadm --create /dev/md2 --level=1 --raid-devices=2 --metadata=1.2 /dev/sdb2 missing
+mkfs.ext4 -L data /dev/md2
+mount /dev/md2 /mnt/newdata2
+# background rsync of current /srv/data (~1.1TB) onto it, tmux'd — same pattern as the
+# earlier srv/data migration
+rsync -a --numeric-ids --info=progress2 /srv/data/ /mnt/newdata2/
+```
+
+Once the copy and its idempotent verification pass complete, cutover follows the same pattern as
+the earlier `/srv/data` migration (`fstab` UUID swap, remount, no reboot needed), followed by
+`mdadm --add /dev/md2 /dev/sda2` to bring the original data partition in as the second mirror
+member.
+
 ### Current state and what's still open
 
-- `/` = `sda1` (32GiB GPT), `/boot` = `md0` (unchanged), `/srv/data` = `sda2` (~3.6TB GPT).
-- **No redundancy yet** on either new partition — both are single-disk (`sda`) until a second 4TB
-  drive is acquired and this gets re-mirrored, a deliberately separate, later stage.
-- Old `sdb5`/`md1` and `sdb6`/`md2` are kept intact, unwiped, as an interim rollback net; `sdb`
-  itself is now a single point of failure for nothing (fully retired), while `sda` is one for
-  everything.
-- As of 2026-09-13, physical access to the device — including the serial console — is available
-  again (it was not, for the remote-only work spanning the 2026-09-11/09-12 NAND and migration
-  stages above, hence their reliance on bounded reboot-tests rather than live serial debugging).
-  This lowers the risk/verification cost of any future boot-chain-touching work (e.g. populating
-  the NAND `installer` partition, or testing `sda` as a true failover boot disk per the open item
-  under "`/boot` on RAID1" above).
+- `/` = `md1` (`sda1` + `sdb1`, RAID1, healthy `[UU]`), `/boot` = `md0` (unchanged, `nofail` now
+  set so a missing member doesn't stall boot), `/srv/data` = being migrated to `md2`.
+- The original 1TB WD drive is gone for good, replaced by the repurposed Time Capsule drive —
+  `monitoring_smart_devices` (ansible) was updated to its actual serial (`Z3016JDN`).
+- `/etc/initramfs/post-update.d/kirkwood-uinitrd` (ansible `base` role) now auto-builds a fresh
+  `uInitrd` after every future `update-initramfs` run, staged at `/boot/uInitrd-staged` — but
+  deliberately does **not** auto-write it to NAND. This device has no serial-recovery fallback
+  (`kwboot` doesn't work here), so an unattended bad initrd silently landing on the only bootable
+  copy after a routine kernel update is a real bricking risk; the `flash_erase`/`nandwrite` step
+  stays manual and reviewed, same as every other NAND write in this project.
 
 ## Base Setup
 
