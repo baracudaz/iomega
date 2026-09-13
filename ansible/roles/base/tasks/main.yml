@@ -1,4 +1,17 @@
 ---
+# Skips fsync() on dpkg's individual file writes, which is the actual CPU/IO-bound part
+# of every apt install/remove/upgrade on this box's weak single-core ARMv5 CPU — a real,
+# noticeable speedup. Trade-off: if power is lost mid-dpkg-operation, the package database
+# can end up corrupted (recoverable, but annoying) — accepted here since this device isn't
+# doing unattended/overnight package operations (unattended-upgrades was removed for
+# unrelated CPU-hogging reasons — see the security role).
+- name: Speed up dpkg by skipping fsync on package installs
+  ansible.builtin.copy:
+    dest: /etc/apt/apt.conf.d/99force-unsafe-io
+    mode: '0644'
+    content: |
+      DPkg::Options:: "--force-unsafe-io";
+
 - name: Install base utility packages
   ansible.builtin.apt:
     name:
