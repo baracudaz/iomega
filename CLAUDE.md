@@ -22,6 +22,12 @@ full story, including the device-tree edit that resized the NAND partitions to f
 this same kernel booted via `bootcmd_sata` from the SATA disk's `/boot` partition instead — that
 path is still intact and kept as the primary fallback (`bootcmd_sata` in `docs/boot.md`).
 
+As of 2026-09-13, `/` and `/srv/data` also moved: originally degraded RAID1 arrays on the
+original 1TB disk (`sdb`), they now live on separate GPT partitions (`sda1`, `sda2`) on the
+second, 4TB disk (`sda`) — unmirrored for now, since only one 4TB drive is available so far (see
+`docs/boot.md`'s "Root and /srv/data migration to sda" section). `/boot` is unaffected, still
+`md0`. The old `sdb`-based arrays are kept intact, unwiped, as a rollback safety net.
+
 **Important distinction:** the visually near-identical **ix2-ng** is a *different* device — same
 enclosure and SoC, but only a 1MB SPI flash chip, booting instead from boot sectors written
 directly onto the hard drives. It is not interchangeable with the ix2-dl. (Confusingly, the stock
@@ -42,8 +48,10 @@ There are no commands to build, lint, or test — do not look for or invent a bu
   path used before, kept intact as fallback; `bootcmd_usb`) including root filesystem label
   conventions (`LABEL=rootfs`, `LABEL=ROOT`) and `mtdparts`. Also documents the device-tree edit
   that resized NAND's `kernel`/`initrd` MTD partitions to make `bootcmd_nand` possible, and NAND
-  archaeology findings from the original stock `boot` partition before it was overwritten. Links
-  to the doozan.com forum threads that are the upstream source for this process.
+  archaeology findings from the original stock `boot` partition before it was overwritten. Also
+  documents the later migration of `/` and `/srv/data` off the original disk's RAID1 arrays onto
+  GPT partitions on the 4TB disk. Links to the doozan.com forum threads that are the upstream
+  source for this process.
 - `artifacts/logs/` — captured device state from the stock unit: `boot.txt`/`u-boot.txt` (U-Boot
   banner/boot log), `dmesg-no-disk.txt`/`dmesg-with-disk.txt` (stock 2.6.31.8 kernel boot log,
   captured with and without a SATA disk attached — not duplicates), `printenv.txt` (stock U-Boot
@@ -79,5 +87,3 @@ There are no commands to build, lint, or test — do not look for or invent a bu
   than converting to prose.
 - Do not merge `reference/ix2-ng/` content into `artifacts/` — they are different, incompatible
   hardware despite similar naming and identical enclosures.
-- The git repository currently has no commits — check `git status`/`git log` before assuming any
-  history exists.

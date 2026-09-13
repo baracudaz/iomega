@@ -19,6 +19,15 @@ full story. Everything above (the SATA install itself, RAID setup, `mkimage` rec
 accurate and still how the images loaded by `bootcmd_nand` are actually built; only *where U-Boot
 loads them from* has changed.
 
+**Update (2026-09-13):** `/` and `/srv/data` moved off the original `sdb`-based degraded RAID1
+arrays (`md1`/`md2`) onto the second, physically larger disk (`sda`, 4TB), GPT-partitioned into
+two separate partitions — see "Root and /srv/data migration to sda" below. This is the actual
+payoff of the 2026-09-11 NAND move above: `/srv/data` was stuck at ~897GB (100% full) under the
+old MBR-constrained layout and now has ~3.6TB usable. Both new partitions are currently
+single-disk/unmirrored — re-mirroring onto a second 4TB drive is separate, not-yet-done follow-on
+work. The old `sdb5`/`md1` (root) and `sdb6`/`md2` (data) arrays are left fully intact,
+degraded-but-healthy, as a rollback safety net.
+
 ## Overview
 
 1. Boot the official Debian bookworm armel/kirkwood netboot installer (`vmlinuz-6.1.0-50-marvell`
@@ -449,6 +458,145 @@ an unpersisted one — accepted given no serial access, with `bootcmd_sata` deli
 as a fallback throughout. Use `fw_setenv` for variables you're already confident in (or just
 reading current values); a real reboot test remains the only option here for anything touching the
 boot chain itself.
+
+## Root and /srv/data migration to sda (2026-09-13)
+
+**Motivation**: NAND-booting (above) removed the only reason `/boot` had to live on an
+MBR-partitioned SATA disk, but `/` and `/srv/data` were still on the original 1TB `sdb`'s degraded
+RAID1 arrays (`md1`=root, `md2`=data — see "md device renumbering" above). `/srv/data` in
+particular was capped at ~897GB and **100% full**. `sda` (the 4TB disk added earlier as a mirror
+candidate) was sitting GPT-partitioned as one large, empty, unused partition. No second 4TB drive
+was available yet, so this migration went onto a single, unmirrored `sda` for now — redundancy is
+a deliberately separate, later stage once a second 4TB drive is acquired. Root and data were split
+into **separate** GPT partitions on `sda`, not one flat filesystem.
+
+Split into two phases with very different risk profiles:
+
+- **Phase 3a (root)**: small (3.5GB), fast, but requires an actual `bootcmd_nand` change and
+  reboot — same accepted risk as every prior boot-chain cutover on this device.
+- **Phase 3b (data)**: huge (869GB), slow (ran ~7.5 hours), but never touches the boot chain —
+  no reboot required, just a long-running background copy.
+
+`/boot` (`md0`) was untouched by either phase.
+
+### Phase 3a — partition `sda`, migrate root, cut over
+
+```bash
+wipefs -a /dev/sda1
+wipefs -a /dev/sda
+sfdisk /dev/sda <<'EOF'
+label: gpt
+unit: sectors
+
+/dev/sda1 : start=2048, size=67108864, type=0FC63DAF-8483-4772-8E79-3D69D8477DE4, name="root"
+/dev/sda2 : type=0FC63DAF-8483-4772-8E79-3D69D8477DE4, name="data"
+EOF
+mkfs.ext4 -L root /dev/sda1
+mkfs.ext4 -L data /dev/sda2   # formatted now, populated later in Phase 3b
+
+mkdir -p /mnt/newroot && mount /dev/sda1 /mnt/newroot
+rsync -aHAXx --numeric-ids --info=progress2 / /mnt/newroot/
+
+# fresh swapfile on the new root — never copy an inactive swapfile's header across
+rm -f /mnt/newroot/swapfile
+fallocate -l 1G /mnt/newroot/swapfile
+chmod 600 /mnt/newroot/swapfile
+mkswap /mnt/newroot/swapfile
+
+# edit /mnt/newroot/etc/fstab: replace only the root line's UUID with sda1's (blkid /dev/sda1)
+# /boot and /srv/data lines left untouched — /srv/data still points at the old md2 UUID here,
+# Phase 3b repoints that later, separately, without a reboot
+
+umount /mnt/newroot
+fw_setenv bootcmd_nand "nand read.e 0x00800000 0x100000 0x1000000; nand read.e 0x03000000 0x1100000 0x2000000; setenv bootargs console=ttyS0,115200 root=UUID=<new-sda1-uuid> rootdelay=10; bootm 0x00800000 0x03000000"
+fw_printenv bootcmd_nand   # verify byte-for-byte before rebooting
+```
+
+`/etc/mdadm/mdadm.conf` was deliberately left completely unchanged — all three `ARRAY` lines stay,
+including the soon-to-be-retired root/data ones, harmless to keep auto-assembling `md1`/`md2` even
+once unused. Since `root=` is a kernel command-line value read generically at boot (not baked into
+the initrd), this meant **no initramfs rebuild and no NAND rewrite were needed for the root
+switch at all** — only `bootcmd_nand`'s env var changed.
+
+**Verified working end-to-end with a real reboot**: `mount` showed `/` on `sda1`, `/boot`
+unchanged on `md0`, `/srv/data` unchanged on `md2` (Phase 3b hadn't run yet), swap active on the
+new swapfile, all three mdadm arrays healthy-degraded, `dmesg` clean. Old `sdb5`/`md1` was left
+fully intact, unwiped — the rollback path is a single `fw_setenv bootcmd_nand` reverting
+`root=UUID=` back to the old value.
+
+### Phase 3b — migrate `/srv/data` (869GB, no reboot required)
+
+Run as a background `tmux` job on the box (survives SSH drops), since this dataset is large enough
+to take hours:
+
+```bash
+mkdir -p /mnt/newdata && mount /dev/sda2 /mnt/newdata
+tmux new-session -d -s datamigrate "sudo rsync -a --numeric-ids --info=progress2 /srv/data/ /mnt/newdata/ 2>&1 | tee /home/admin/rsync-data-migration.log; echo DONE_EXIT_\$? >> /home/admin/rsync-data-migration.log"
+```
+
+`-H`/`-A`/`-X` were dropped after an initial attempt (`-aHAXx`) measured only ~9MB/s — this
+dataset has no hardlinks/ACLs/xattrs worth preserving, and the per-file overhead of checking for
+them on this hardware wasn't free. Plain `-a` only marginally improved throughput (~11-16MB/s
+sustained). Diagnosed via `vmstat 1 5` (near-0% idle, 30-60%+ system time, load average
+consistently 2-5.5 on this box's single ~400MHz-class ARMv5 core): this is fundamentally CPU-bound
+on kernel/syscall overhead from copying tens of thousands of small files, not something further
+rsync flag tuning fixes. Competing services (`smbd`, `nfs-kernel-server`, `winbind`,
+`avahi-daemon`, and the `apt-daily*.timer`s) were stopped for the duration to reduce contention —
+note `systemctl stop smbd` alone is **not** sufficient to fully stop Samba: `winbind.service` spawns
+`samba-dcerpcd` + `rpcd_lsad` worker processes independently and must be stopped separately
+(`systemctl stop winbind`). `unattended-upgrade`'s in-flight run was deliberately left to finish
+naturally rather than killed (holds the dpkg lock; killing it mid-transaction risks corrupting the
+package database) — only the timers that would *start a new* run were disabled.
+
+First pass finished in ~7.5 hours: 938GB transferred (86,232 files), clean exit. Verification,
+done before cutover:
+
+```bash
+# 1. idempotent second pass — the primary correctness gate
+tmux new-session -d -s datamigrate2 "sudo rsync -a --numeric-ids --info=progress2 /srv/data/ /mnt/newdata/ 2>&1 | tee /home/admin/rsync-data-verify.log; echo DONE_EXIT_\$? >> /home/admin/rsync-data-verify.log"
+# result: xfr#0 — zero files needed transferring, clean exit
+
+# 2. du/file-count cross-check
+du -sh /srv/data; find /srv/data -mindepth 1 | wc -l      # 869G, 117355
+du -sh /mnt/newdata; find /mnt/newdata -mindepth 1 | wc -l # 874G, 117355
+```
+
+File counts matched exactly (117,355 on both sides); the small 869G→874G size delta is ext4
+metadata/block-overhead from the differently-sized filesystem, not missing data, consistent with
+the zero-transfer second pass.
+
+Cutover (no reboot needed — a remount is enough, since nothing here touches the boot chain):
+
+```bash
+umount /mnt/newdata
+sed -i 's/UUID=<old-md2-uuid> \/srv\/data/UUID=<new-sda2-uuid> \/srv\/data/' /etc/fstab
+umount /srv/data
+mount /srv/data   # now resolves to sda2 per the updated fstab
+systemctl start avahi-daemon winbind smbd nfs-kernel-server
+systemctl start apt-daily.timer apt-daily-upgrade.timer
+```
+
+**Verified**: `df -h /srv/data` showed `sda2`'s real size (3.6T total, 874G used, 2.6T available —
+up from 897GB/100% full), spot-checked known paths (`shared`, `stano`, `timemachine`,
+`lost+found`), `dmesg` showed the clean unmount(`md2`)/mount(`sda2`) sequence with no errors, all
+restarted services (`smbd`, `nfs-kernel-server`, `winbind`, `avahi-daemon`, both apt timers) came
+back `active`. Old `sdb6`/`md2` was left fully intact and unwiped — 869GB of now-duplicate data as
+a rollback safety net; decommissioning it is a separate, later decision.
+
+### Current state and what's still open
+
+- `/` = `sda1` (32GiB GPT), `/boot` = `md0` (unchanged), `/srv/data` = `sda2` (~3.6TB GPT).
+- **No redundancy yet** on either new partition — both are single-disk (`sda`) until a second 4TB
+  drive is acquired and this gets re-mirrored, a deliberately separate, later stage.
+- Old `sdb5`/`md1` and `sdb6`/`md2` are kept intact, unwiped, as an interim rollback net; `sdb`
+  itself is now a single point of failure for nothing (fully retired), while `sda` is one for
+  everything.
+- As of 2026-09-13, physical access to the device — including the serial console — is available
+  again (it was not, for the remote-only work spanning the 2026-09-11/09-12 NAND and migration
+  stages above, hence their reliance on bounded reboot-tests rather than live serial debugging).
+  This lowers the risk/verification cost of any future boot-chain-touching work (e.g. populating
+  the NAND `installer` partition, or testing `sda` as a true failover boot disk per the open item
+  under "`/boot` on RAID1" above).
 
 ## Base Setup
 
