@@ -6,7 +6,7 @@ commands typed over a serial console.
 
 ## Layout
 
-Eleven roles defined, in this order (`playbook.yml`), all applied:
+Ten roles defined, in this order (`playbook.yml`), all applied:
 
 - **base** — utility packages (rsync, smartmontools, lm-sensors, gnupg, sysstat, u-boot-tools,
   testdisk, tmux), hostname. testdisk/tmux were added 2026-09-10 after a manual
@@ -193,14 +193,11 @@ actually got deployed. fastfetch and its `libyyjson0` dependency were purged fro
   time — neither was placeholder output. Bump `diskwatch_version`/`syswatch_version` in
   `roles/watch/defaults/main.yml` and rebuild the relevant binary by hand for a future
   version — this isn't auto-tracked.
-- **mediasort** — installs `python3-mutagen` (ID3v1/v2, Vorbis comment, and MP4-atom tag
-  reading), `mediainfo` (fallback container probe), `libimage-exiftool-perl` (EXIF/IPTC/XMP for
-  the photo carve output), and `jdupes` (exact-duplicate detection), added 2026-09-11 to support sorting the PhotoRec carve output from `/srv/data/shared/recovery`
-  (see the testdisk/photorec note under `base` above) into a meaningful `Music`/`Photos`/
-  `Documents` tree. The actual sort script isn't part of this playbook — it's a one-off
-  operation against live recovered data, not idempotent config — but the tools it depends on
-  are tracked here so they survive a reprovision instead of being an undocumented manual
-  `apt install` on the box.
+- **mediasort — removed 2026-09-13.** Installed `python3-mutagen`, `mediainfo`,
+  `libimage-exiftool-perl`, and `jdupes` to support sorting the one-off PhotoRec carve output
+  from `/srv/data/shared/recovery` into a `Music`/`Photos`/`Documents` tree — that sort completed
+  (86,323 files organized, 3,597 duplicates removed) and the role/packages were no longer needed,
+  so both were removed rather than left as dead weight.
 - **netwatch — attempted, blocked, not installed.** matthart1983's third sibling tool
   (network diagnostics: `pcap`-based traffic inspection, connection attribution). Unlike
   diskwatch/syswatch, this one hits a **hard architecture wall, not a missing dependency**:

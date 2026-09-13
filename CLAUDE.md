@@ -75,10 +75,10 @@ There are no commands to build, lint, or test — do not look for or invent a bu
 - `reference/ix2-ng/` — factory reimaging package (`zImage`, `initrd`, `boot.tgz`) for the
   **different, disk-boot ix2-ng device** — kept for comparison only, not applicable to this
   project's ix2-dl. See `reference/ix2-ng/README.md` for why it's split out.
-- `ansible/` — a real, actively-used playbook (eleven roles) that provisions this NAS's Debian
+- `ansible/` — a real, actively-used playbook (ten roles) that provisions this NAS's Debian
   userspace end to end (packages, swap, security/firewall, tuning, RAID/SMART alerting via
-  ntfy.sh, tailscale, NFS, Samba, package cleanup, disk-diagnostics binaries, media-library
-  sorting tools) — see `ansible/README.md` for the full rundown of what each role does and why.
+  ntfy.sh, tailscale, NFS, Samba, package cleanup, disk-diagnostics binaries) — see
+  `ansible/README.md` for the full rundown of what each role does and why.
   Deliberately does **not** cover kernel/NAND/boot-chain changes (see `docs/boot.md` for those) —
   that's treated as manual, one-off, device-specific work, not idempotent config.
 

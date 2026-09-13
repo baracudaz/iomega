@@ -23,5 +23,3 @@
       tags: cleanup
     - role: watch
       tags: watch
-    - role: mediasort
-      tags: mediasort
