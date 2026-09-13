@@ -18,6 +18,13 @@ Eleven roles defined, in this order (`playbook.yml`), all applied:
   these tools survive a reprovision instead of being manual, undocumented installs; tmux is what
   lets photorec's ncurses TUI be driven/monitored non-interactively over SSH (`tmux
   capture-pane -e` preserves the ANSI highlight codes needed to read menu selection state).
+  Also (2026-09-13): `--force-unsafe-io` for dpkg (speed on this weak CPU); a compat symlink
+  working around an upstream `initramfs-tools` bug that breaks `update-initramfs` outright on
+  armel (its `kmod` hook hardcodes a `*-linux-gnu` glob that never matches armel's
+  `-linux-gnueabi` triplet); forcing `COMPRESS=gzip` in `initramfs.conf`; and a
+  `/etc/initramfs/post-update.d/` hook that auto-builds (but deliberately does not auto-deploy
+  to NAND) a fresh `uInitrd` after every `update-initramfs` run — see `docs/boot.md`'s NAND
+  section for why the actual NAND write stays a manual, reviewed step on this device.
 - **swap** — swapfile creation and persistence.
 - **security** — sudo/ufw packages, admin user's sudo-group membership, explicit sshd policy,
   firewall rules. Also actively removes `unattended-upgrades` (installed and enabled here until
