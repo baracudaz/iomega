@@ -1,5 +1,5 @@
 ---
-- name: Cap journald disk usage (20GB root partition — don't let logs eat it)
+- name: Cap journald disk usage (don't let logs eat the root partition)
   ansible.builtin.lineinfile:
     path: /etc/systemd/journald.conf
     regexp: '^#?SystemMaxUse='
