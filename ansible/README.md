@@ -19,8 +19,11 @@ Eleven roles defined, in this order (`playbook.yml`), all applied:
   lets photorec's ncurses TUI be driven/monitored non-interactively over SSH (`tmux
   capture-pane -e` preserves the ANSI highlight codes needed to read menu selection state).
 - **swap** — swapfile creation and persistence.
-- **security** — sudo/ufw/unattended-upgrades packages, admin user's sudo-group membership,
-  explicit sshd policy, firewall rules.
+- **security** — sudo/ufw packages, admin user's sudo-group membership, explicit sshd policy,
+  firewall rules. Also actively removes `unattended-upgrades` (installed and enabled here until
+  2026-09-13, when its background apt runs were found visibly hogging CPU on this box's single
+  weak ARMv5 core during other work — see `docs/boot.md`). Manual `apt upgrade` is used instead;
+  the old config tasks are left commented out in `tasks/main.yml` in case it's ever re-enabled.
 - **tuning** — journald size cap, `vm.swappiness`, RAID resync floor, one-time `sensors-detect`
   (depends on `lm-sensors` from the `base` role, hence the ordering).
 - **monitoring** — push notifications via [ntfy.sh](https://ntfy.sh) for mdadm RAID events (via

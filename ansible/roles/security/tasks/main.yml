@@ -4,7 +4,10 @@
     name:
       - sudo
       - ufw
-      - unattended-upgrades
+      # unattended-upgrades removed 2026-09-13 — its background apt runs were
+      # visibly hogging CPU on this box's single weak ARMv5 core, competing
+      # with actual work (observed during the srv/data migration in
+      # docs/boot.md). Manual `apt upgrade` is used instead.
     state: present
     update_cache: true
     cache_valid_time: 3600
@@ -62,24 +65,42 @@
 # no hardware FPU, so armhf/arm64 aren't an option for this hardware) — there
 # is no further "just re-run this same fix" path after this release.
 
-- name: Configure unattended-upgrades origins
-  ansible.builtin.copy:
-    dest: /etc/apt/apt.conf.d/50unattended-upgrades-local
-    mode: '0644'
-    content: |
-      // Plain codename-based origins — trixie-security has a normal, complete
-      // armel package index (see roles/security/tasks/main.yml), unlike
-      // bookworm-security once bookworm aged into oldstable.
-      Unattended-Upgrade::Origins-Pattern {
-              "origin=Debian,codename=${distro_codename}-security";
-              "origin=Debian,codename=${distro_codename}-updates";
-      };
-      Unattended-Upgrade::Remove-Unused-Dependencies "true";
+# unattended-upgrades disabled 2026-09-13 (see the package-install task above for why) —
+# these two tasks used to configure and enable it. Left here, commented out, as the
+# quickest way to re-enable it later if wanted:
+#
+# - name: Configure unattended-upgrades origins
+#   ansible.builtin.copy:
+#     dest: /etc/apt/apt.conf.d/50unattended-upgrades-local
+#     mode: '0644'
+#     content: |
+#       // Plain codename-based origins — trixie-security has a normal, complete
+#       // armel package index (see roles/security/tasks/main.yml), unlike
+#       // bookworm-security once bookworm aged into oldstable.
+#       Unattended-Upgrade::Origins-Pattern {
+#               "origin=Debian,codename=${distro_codename}-security";
+#               "origin=Debian,codename=${distro_codename}-updates";
+#       };
+#       Unattended-Upgrade::Remove-Unused-Dependencies "true";
+#
+# - name: Enable periodic apt update/upgrade timers
+#   ansible.builtin.copy:
+#     dest: /etc/apt/apt.conf.d/20auto-upgrades
+#     mode: '0644'
+#     content: |
+#       APT::Periodic::Update-Package-Lists "1";
+#       APT::Periodic::Unattended-Upgrade "1";
 
-- name: Enable periodic apt update/upgrade timers
-  ansible.builtin.copy:
-    dest: /etc/apt/apt.conf.d/20auto-upgrades
-    mode: '0644'
-    content: |
-      APT::Periodic::Update-Package-Lists "1";
-      APT::Periodic::Unattended-Upgrade "1";
+- name: Ensure unattended-upgrades package is removed
+  ansible.builtin.apt:
+    name: unattended-upgrades
+    state: absent
+    purge: true
+
+- name: Remove leftover unattended-upgrades apt config
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: absent
+  loop:
+    - /etc/apt/apt.conf.d/50unattended-upgrades-local
+    - /etc/apt/apt.conf.d/20auto-upgrades
