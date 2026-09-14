@@ -1,4 +1,15 @@
 ---
-diskwatch_version: "0.5.4"
-syswatch_version: "0.14.1"
-netwatch_version: "0.31.2"
+# Fetched from GitHub releases (armv5te assets now published upstream, as of
+# 2026-09-14 -- previously required hand-building via `cross build`, see git
+# history for that era's roles/watch/files/ binaries). Bumping a version requires
+# also updating its checksum below -- get it with, e.g.:
+#   curl -sL https://github.com/matthart1983/diskwatch/releases/download/<version>/diskwatch-linux-armv5te.tar.gz | sha256sum
+diskwatch_version: v0.5.7
+diskwatch_tarball_sha256: a27f7ac67563b3dac622969aabd0332bf994b19d4812b1afc74add9753914fdf
+
+# syswatch's armv5te release is the "-static" variant (its only armv5te asset).
+syswatch_version: v0.14.2
+syswatch_tarball_sha256: edac4c5ea02b292f010859a6fa54fd45c4049b04ea58369f2e583801614fe5f3
+
+netwatch_version: v0.31.4
+netwatch_tarball_sha256: ea25fd20cd1f5ddd981dbf516a43e9c54241b06d2adf2d5d5785b1f644833d26

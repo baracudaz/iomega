@@ -174,41 +174,35 @@ actually got deployed. fastfetch and its `libyyjson0` dependency were purged fro
   auto-detection tooling, an unused local mail daemon that appeared as an upgrade side effect,
   etc.), then `autoremove`s whatever that orphans. Every entry's reasoning — and what was
   deliberately left out and why — lives in `roles/cleanup/defaults/main.yml`, not here.
-- **watch** — deploys pinned binaries of two sibling single-host diagnostics TUIs by the
-  same author, [matthart1983/diskwatch](https://github.com/matthart1983/diskwatch) (disk —
-  unifies `iostat`/`smartctl`/`lsblk`/`df` into one dashboard) and
+- **watch** — deploys three sibling single-host diagnostics TUIs by the same author:
+  [matthart1983/diskwatch](https://github.com/matthart1983/diskwatch) (disk — unifies
+  `iostat`/`smartctl`/`lsblk`/`df` into one dashboard),
   [matthart1983/syswatch](https://github.com/matthart1983/syswatch) (system —
-  CPU/memory/disks/processes/power/services), to `/usr/local/bin/diskwatch` and
-  `/usr/local/bin/syswatch`. One role rather than two: same deploy pattern (a single
-  `copy` task each), same reason for existing, same story — worth keeping together instead
-  of duplicating the same explanation twice. **No upstream release covers this
-  hardware** for either — both only ship `aarch64`/`x86_64` binaries, and this box is
-  `armv5tel` (ARMv5TE, no hardware FPU), so `roles/watch/files/diskwatch-0.5.4-armv5te` and
-  `syswatch-0.14.1-armv5te` are binaries built by hand via `cross build
-  --target armv5te-unknown-linux-gnueabi` on the control machine — building on-device isn't
-  realistic (single ~400 BogoMIPS core, 234MB RAM total; Rust codegen for a TUI-sized
-  dependency tree needs far more than that). Both built clean with no source changes
-  needed. Checked into the role's `files/` dir like the other binary artifacts in this
-  repo, rather than fetched from a release like the `tailscale` role does — there's no
-  upstream release to point at for this target, unlike tailscale's self-built-and-published
-  pipeline. Verified live: `diskwatch --diag` (its non-interactive dump mode) correctly
-  reads both real disks (`sda`/`sdb`) and all three `mdX` arrays; syswatch, run in a scratch
-  `tmux` session, correctly rendered real CPU/memory/process data including a live insight
-  (`WARN load 2.65 on 1 cores`) that genuinely reflected the photorec carve running at the
-  time — neither was placeholder output. Bump `diskwatch_version`/`syswatch_version` in
-  `roles/watch/defaults/main.yml` and rebuild the relevant binary by hand for a future
-  version — this isn't auto-tracked.
+  CPU/memory/disks/processes/power/services), and
+  [matthart1983/netwatch](https://github.com/matthart1983/netwatch) (network — `pcap`-based
+  traffic inspection, connection attribution), to `/usr/local/bin/{diskwatch,syswatch,netwatch}`.
+  One role rather than three: same deploy pattern, same reason for existing, same story — worth
+  keeping together instead of duplicating the same explanation. Fetched from each project's
+  GitHub releases (`get_url` + a pinned `sha256` on the tarball, `unarchive` to extract, same
+  general shape as the `tailscale` role) — as of 2026-09-14 all three publish an
+  `armv5te` Linux asset directly, so no self-building is needed any more. That wasn't always
+  true: diskwatch/syswatch initially had **no upstream release for this hardware** (both only
+  shipped `aarch64`/`x86_64`) and were hand-built via `cross build --target
+  armv5te-unknown-linux-gnueabi` and checked into the repo as binaries; netwatch was further
+  blocked by a **hard architecture wall**, not just a missing build — its source used
+  `std::sync::atomic::AtomicU64` directly, and the `armv5te-unknown-linux-gnueabi` Rust target
+  has no native 64-bit atomic support (`target_has_atomic` tops out at 32-bit on this CPU
+  generation). Both limitations were resolved upstream since (see git history for the
+  hand-built-binary era, if curious). Verified live: `diskwatch --diag` (its non-interactive
+  dump mode) correctly reads both real disks (`sda`/`sdb`) and all `mdX` arrays; `syswatch`, run
+  in a scratch `tmux` session, correctly rendered real CPU/memory/process data. Bump
+  `*_version`/`*_tarball_sha256` in `roles/watch/defaults/main.yml` for a future version — see
+  that file's comment for how to get the new checksum.
 - **mediasort — removed 2026-09-13.** Installed `python3-mutagen`, `mediainfo`,
   `libimage-exiftool-perl`, and `jdupes` to support sorting the one-off PhotoRec carve output
   from `/srv/data/shared/recovery` into a `Music`/`Photos`/`Documents` tree — that sort completed
   (86,323 files organized, 3,597 duplicates removed) and the role/packages were no longer needed,
   so both were removed rather than left as dead weight.
-- **netwatch — installed 2026-09-13.** matthart1983's third sibling tool (network
-  diagnostics: `pcap`-based traffic inspection, connection attribution). Previously blocked by
-  a hard architecture wall — its source used `std::sync::atomic::AtomicU64` directly, and the
-  `armv5te-unknown-linux-gnueabi` Rust target has no native 64-bit atomic support
-  (`target_has_atomic` tops out at 32-bit on this CPU generation) — that blocker no longer
-  applies as of the build now checked into `roles/watch/files/netwatch-0.31.2-armv5te`, deployed
   and confirmed running on the live host.
 
 ## macOS NFS client: Finder's "Connect to Server" — fixed

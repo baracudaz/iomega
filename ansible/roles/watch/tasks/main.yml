@@ -1,24 +1,102 @@
 ---
+# All three are matthart1983's sibling single-host diagnostics/network tools. Each
+# release is a single-file tarball (no upstream checksums published, so the tarball
+# itself is checksum-verified via get_url before extracting) -- downloaded and
+# extracted to a scratch dir, then the binary is moved into place and the scratch
+# dir cleaned up.
+
 - name: Install diskwatch
-  ansible.builtin.copy:
-    src: "diskwatch-{{ diskwatch_version }}-armv5te"
-    dest: /usr/local/bin/diskwatch
-    owner: root
-    group: root
-    mode: '0755'
+  block:
+    - name: Download diskwatch release tarball
+      ansible.builtin.get_url:
+        url: "https://github.com/matthart1983/diskwatch/releases/download/{{ diskwatch_version }}/diskwatch-linux-armv5te.tar.gz"
+        dest: /tmp/diskwatch.tar.gz
+        checksum: "sha256:{{ diskwatch_tarball_sha256 }}"
+        mode: '0644'
+
+    - name: Extract diskwatch tarball
+      ansible.builtin.unarchive:
+        src: /tmp/diskwatch.tar.gz
+        dest: /tmp
+        remote_src: true
+
+    - name: Install diskwatch binary
+      ansible.builtin.copy:
+        src: /tmp/diskwatch-linux-armv5te
+        dest: /usr/local/bin/diskwatch
+        remote_src: true
+        owner: root
+        group: root
+        mode: '0755'
+
+    - name: Clean up diskwatch scratch files
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: absent
+      loop:
+        - /tmp/diskwatch.tar.gz
+        - /tmp/diskwatch-linux-armv5te
 
 - name: Install syswatch
-  ansible.builtin.copy:
-    src: "syswatch-{{ syswatch_version }}-armv5te"
-    dest: /usr/local/bin/syswatch
-    owner: root
-    group: root
-    mode: '0755'
+  block:
+    - name: Download syswatch release tarball
+      ansible.builtin.get_url:
+        url: "https://github.com/matthart1983/syswatch/releases/download/{{ syswatch_version }}/syswatch-linux-armv5te-static.tar.gz"
+        dest: /tmp/syswatch.tar.gz
+        checksum: "sha256:{{ syswatch_tarball_sha256 }}"
+        mode: '0644'
+
+    - name: Extract syswatch tarball
+      ansible.builtin.unarchive:
+        src: /tmp/syswatch.tar.gz
+        dest: /tmp
+        remote_src: true
+
+    - name: Install syswatch binary
+      ansible.builtin.copy:
+        src: /tmp/syswatch-linux-armv5te-static
+        dest: /usr/local/bin/syswatch
+        remote_src: true
+        owner: root
+        group: root
+        mode: '0755'
+
+    - name: Clean up syswatch scratch files
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: absent
+      loop:
+        - /tmp/syswatch.tar.gz
+        - /tmp/syswatch-linux-armv5te-static
 
 - name: Install netwatch
-  ansible.builtin.copy:
-    src: "netwatch-{{ netwatch_version }}-armv5te"
-    dest: /usr/local/bin/netwatch
-    owner: root
-    group: root
-    mode: '0755'
+  block:
+    - name: Download netwatch release tarball
+      ansible.builtin.get_url:
+        url: "https://github.com/matthart1983/netwatch/releases/download/{{ netwatch_version }}/netwatch-linux-armv5te.tar.gz"
+        dest: /tmp/netwatch.tar.gz
+        checksum: "sha256:{{ netwatch_tarball_sha256 }}"
+        mode: '0644'
+
+    - name: Extract netwatch tarball
+      ansible.builtin.unarchive:
+        src: /tmp/netwatch.tar.gz
+        dest: /tmp
+        remote_src: true
+
+    - name: Install netwatch binary
+      ansible.builtin.copy:
+        src: /tmp/netwatch-linux-armv5te
+        dest: /usr/local/bin/netwatch
+        remote_src: true
+        owner: root
+        group: root
+        mode: '0755'
+
+    - name: Clean up netwatch scratch files
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: absent
+      loop:
+        - /tmp/netwatch.tar.gz
+        - /tmp/netwatch-linux-armv5te
