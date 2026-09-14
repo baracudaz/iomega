@@ -27,9 +27,24 @@
       # (a detached session survives disconnects, and `tmux capture-pane -e` preserves the
       # ANSI highlight codes needed to see which menu item is actually selected).
       - tmux
+      # Manually installed 2026-09-13/14 for interactive diagnostics; tracked here so it
+      # survives a reprovision instead of being an undocumented manual `apt install`.
+      - btop
     state: present
     update_cache: true
     cache_valid_time: 3600
+
+# This minimal Debian install only has C/POSIX locales — no UTF-8 at all, which breaks
+# any tool that assumes it (e.g. btop refuses to start: "No UTF-8 locale detected").
+# C.utf8 is glibc's built-in UTF-8 locale (available without needing locale-gen/
+# /etc/locale.gen on modern glibc) — just needs to actually be selected as the default.
+- name: Set default locale to C.utf8 (fixes UTF-8-dependent tools like btop)
+  ansible.builtin.lineinfile:
+    path: /etc/default/locale
+    regexp: '^LANG='
+    line: 'LANG=C.utf8'
+    create: true
+    mode: '0644'
 
 - name: Set hostname
   ansible.builtin.hostname:
