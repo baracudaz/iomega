@@ -12,8 +12,8 @@ for the boot chain itself (unchanged by the OS upgrade); only the installed user
 moved on.
 
 **Update (2026-09-11):** the boot chain itself changed — `bootcmd` now boots straight from NAND
-(`bootcmd_nand`) instead of the SATA disk's `/boot` partition (`bootcmd_sata`, still intact as
-fallback). NAND's `kernel`/`initrd`/`boot` MTD partitions (not `uboot`/`env`/`env2`) were resized
+(`bootcmd_nand`) instead of the SATA disk's `/boot` partition (`bootcmd_sata`, which was kept as a
+fallback at the time — it has since been retired, see the 2026-09-14 update below). NAND's `kernel`/`initrd`/`boot` MTD partitions (not `uboot`/`env`/`env2`) were resized
 and overwritten to make this possible — see "Booting from NAND" under "NAND flash" below for the
 full story. Everything above (the SATA install itself, RAID setup, `mkimage` recipe) is still
 accurate and still how the images loaded by `bootcmd_nand` are actually built; only *where U-Boot
@@ -40,6 +40,12 @@ longer single-disk. The original 1TB WD drive was physically swapped out for a s
 exactly, and both are re-mirrored via mdadm. See "Re-mirroring root and /srv/data onto a second
 4TB drive" below for the full procedure, including a real upstream `initramfs-tools` bug hit
 along the way (breaks `update-initramfs` outright on armel).
+
+**Update (2026-09-14):** boot-chain cleanup after that disk swap — `bootcmd_sata` turned out to be
+a *dead* fallback (both the `/boot` filesystem and root it referenced were on the removed disk)
+and was retired; `bootcmd_installer` was persisted so the NAND rescue image can actually be
+launched; and the equally-dead `/boot` fstab entry was removed. **There is no `/boot` filesystem
+on this device any more.** See "Boot-chain cleanup after the re-mirror" below.
 
 ## Overview
 
@@ -263,8 +269,11 @@ below). Those offsets now sit inside our own, differently-sized `kernel`/`initrd
 `bootcmd_orig` would load truncated/wrong data, not the real stock firmware — it wouldn't brick
 anything (worse case is just a boot failure, same recoverable-only-with-physical-access situation
 as any other failed boot attempt here), but it's no longer a meaningful fallback. **The real
-fallback now is `bootcmd_sata`** (still fully intact and independently tested — see "Booting from
-NAND" below), not `bootcmd_orig`.
+fallback now is `bootcmd_installer`** — the NAND-resident, boot-tested Debian Installer (see
+"Populating the NAND installer partition" below). It is *not* `bootcmd_orig`, and as of
+2026-09-14 it is no longer `bootcmd_sata` either: that path's `/boot` filesystem and root both
+lived on the original 1TB disk, which was physically removed, so it was retired (repointed at a
+message naming its replacement) rather than left as a fallback that would silently fail.
 
 **U-Boot binary backup:** `artifacts/firmware/uboot-nand-dump.bin` is a raw dump of the `uboot`
 MTD partition (`mtd0`, 512KB), taken 2026-08-26 via `nanddump -f - /dev/mtd0`. Read twice and
@@ -526,10 +535,20 @@ network stack. Exited via a physical power-cycle (safest option since the instal
 touched any real storage yet — no in-session shell/reboot command was needed or attempted). After
 power-cycling, the box came back up cleanly on the normal `bootcmd_nand` path exactly as before:
 confirmed via `fw_printenv bootcmd` (still `run bootcmd_nand`) and `fw_printenv bootcmd_installer`
-(empty — never persisted, exactly as intended), `df`/`dmesg` clean. **`bootcmd_installer` is set
-up and proven working, but deliberately not wired into `bootcmd`** — it's meant to be invoked by
-hand at the U-Boot prompt only when actually needed for recovery, the same way `bootcmd_sata`
-exists as a fallback without ever being the default.
+(empty — never persisted at the time, exactly as intended for the test), `df`/`dmesg` clean.
+
+**Persisted 2026-09-14.** Leaving it unset meant the payload was bootable but there was no stored
+command to invoke it — you'd have had to retype the whole `nand read.e …` line at the U-Boot
+prompt from this doc. It is now committed to the environment, byte-identical to the value verified
+over serial above:
+
+```bash
+fw_setenv bootcmd_installer "nand read.e 0x00800000 0x3100000 0x1000000; nand read.e 0x03000000 0x4100000 0x2000000; setenv bootargs console=ttyS0,115200; bootm 0x00800000 0x03000000"
+```
+
+**It is still deliberately not wired into `bootcmd`** — invoke it by hand at the U-Boot prompt
+(`run bootcmd_installer`) only when actually needed for recovery. With `bootcmd_sata` now retired
+(its disk is gone), this is the device's recovery path.
 
 ### Reading/writing the U-Boot environment from Linux (`fw_printenv`/`fw_setenv`)
 
@@ -841,16 +860,45 @@ member.
 
 ### Current state and what's still open
 
-- `/` = `md1` (`sda1` + `sdb1`, RAID1, healthy `[UU]`), `/boot` = `md0` (unchanged, `nofail` now
-  set so a missing member doesn't stall boot), `/srv/data` = being migrated to `md2`.
+- `/` = `md1` (`sda1` + `sdb1`, RAID1, healthy `[UU]`), `/srv/data` = `md2` (`sda2` + `sdb2`,
+  RAID1). Both filesystems are mirrored across the two 4TB disks.
 - The original 1TB WD drive is gone for good, replaced by the repurposed Time Capsule drive —
   `monitoring_smart_devices` (ansible) was updated to its actual serial (`Z3016JDN`).
-- `/etc/initramfs/post-update.d/kirkwood-uinitrd` (ansible `base` role) now auto-builds a fresh
+- `/etc/initramfs/post-update.d/kirkwood-uinitrd` (ansible `uboot` role) now auto-builds a fresh
   `uInitrd` after every future `update-initramfs` run, staged at `/boot/uInitrd-staged` — but
   deliberately does **not** auto-write it to NAND. This device has no serial-recovery fallback
   (`kwboot` doesn't work here), so an unattended bad initrd silently landing on the only bootable
   copy after a routine kernel update is a real bricking risk; the `flash_erase`/`nandwrite` step
   stays manual and reviewed, same as every other NAND write in this project.
+
+### Boot-chain cleanup after the re-mirror (2026-09-14)
+
+Pulling the original 1TB disk quietly invalidated two things that this doc had described as
+intact. Both were found by actually checking rather than trusting the notes, and both are fixed:
+
+- **`bootcmd_sata` was dead, not a fallback.** It loaded `/uImage` from `ide 1:1` and booted
+  `root=UUID=9c5fb1da…` — the `/boot` ext2 filesystem *and* that root both lived on the removed
+  disk. `blkid` confirmed zero matches for either UUID. A "fallback" that fails at both the
+  `ext2load` and the root mount is worse than none, since it invites you to waste a recovery
+  attempt on it. Rather than deleting it outright, it was **repointed at a message** — a retired
+  command that names its replacement is more useful mid-recovery than an absent one:
+
+  ```bash
+  fw_setenv bootcmd_sata "echo RETIRED 2026-09-14: this path booted from the old 1TB disk, which was removed. Use: run bootcmd_installer"
+  ```
+- **`bootcmd_installer` had never been persisted.** The installer was verified bootable over
+  serial (above) but deliberately tested *unpersisted*, and then never committed — leaving the
+  payload in NAND with no stored command to launch it. Now set; see that section for the value.
+
+- **The `/boot` fstab entry was also dead** (same removed disk, UUID `6896514a…`) and was costing
+  a 5s `x-systemd.device-timeout` stall on every boot. Removed outright rather than recreated:
+  U-Boot reads the kernel and initrd from NAND, so **nothing mounts a `/boot` filesystem at boot
+  any more**. `/boot` is now a plain directory on `/`, which is where `update-initramfs` and the
+  post-update hook write their artifacts. `fstab`'s stale `# … was on /dev/mdX during
+  installation` comments were corrected at the same time.
+
+Net effect on recovery: the device's real recovery path is now a single `run bootcmd_installer`
+at the U-Boot prompt, backed by a payload that has actually been booted end-to-end.
 
 ## Base Setup
 

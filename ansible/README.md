@@ -109,15 +109,24 @@ actually got deployed. fastfetch and its `libyyjson0` dependency were purged fro
   another's.
 - **samba** — **re-enabled 2026-09-11**, reversing a 2026-09-10 decision to disable it for
   being too heavy for this box's limited hardware (single-core ARMv5, 234MB RAM), especially
-  once Avahi/mDNS and the AD-DC-capable `samba` package pull in their full dependency trees. At
-  idle after this redeploy the box has 136MB available (234MB total, 97MB used, per `free -m`)
-  with `smbd`/`avahi-daemon` both active — healthy so far, but that's idle load, not the actual
-  file-transfer/Time Machine-backup load the original concern was about, so this is worth
-  watching rather than considered settled. If it does turn out too heavy again: `smbd`/
-  `avahi-daemon` can be stopped and disabled, the `samba`/`avahi-daemon` packages purged, and
-  the `ufw` rules for 445/5353 removed, without touching `/srv/data/shared`,
-  `/srv/data/<user>`, or `/srv/data/timemachine` — none of that data lives in the serving
-  software. Installs `samba` for macOS Finder and CIFS-mounting Linux clients (e.g. the rpi
+  once Avahi/mDNS and the AD-DC-capable `samba` package pull in their full dependency trees.
+  **Slimmed down 2026-09-14** in exactly that direction: `avahi-daemon` (+`libnss-mdns`),
+  `winbind` (+`libnss-winbind`/`libpam-winbind`) and `samba-ad-dc` were all purged, and the
+  `samba` install now uses `install_recommends: false` so they don't creep back — `winbind` and
+  `samba-ad-dc` are *Recommends* of `samba`, not Depends, and are pure waste on a standalone
+  `security = USER` server with no domain to join. Between them `winbindd`, its `wb[IOMEGA]`
+  worker, `samba-dcerpcd` and two idle `rpcd_lsad` processes were holding ~50-70MB RSS on a
+  234MB box; after the purge `free -m` went from 82MB used / 151MB available to 71MB / 162MB,
+  and all of those processes are gone. Two accepted trade-offs, both reversible: the Time
+  Machine destination no longer auto-appears under System Settings → Time Machine → Add Backup
+  Disk (mount the share in Finder first, then pick it there), and `iomega.local` no longer
+  resolves — use the LAN IP or the Tailscale name. Removing them needed care with
+  `/etc/nsswitch.conf`, which referenced both `winbind` (passwd/group) and `mdns4_minimal`
+  (hosts); the package postrm scripts cleaned both correctly, verified afterwards.
+  If Samba itself ever turns out too heavy again: `smbd` can be stopped and disabled and the
+  `samba` package purged, along with the `ufw` rule for 445, without touching
+  `/srv/data/shared`, `/srv/data/<user>`, or `/srv/data/timemachine` — none of that data lives
+  in the serving software. Installs `samba` for macOS Finder and CIFS-mounting Linux clients (e.g. the rpi
   running k3s), with a two-tier IAM model built on top of a single unified data tree (one
   directory can be reached over either protocol, not separate copies per protocol — matching
   how NAS vendors like Synology/QNAP actually structure this):
@@ -146,14 +155,13 @@ actually got deployed. fastfetch and its `libyyjson0` dependency were purged fro
     general Apple metadata/resource-fork support — all three VFS modules already ship in
     Debian's `samba` package, no extra package needed. Uncapped by default
     (`samba_timemachine_max_size`, e.g. `"1T"`, to bound it).
-  - **Bonjour/mDNS auto-discovery** — `avahi-daemon` is installed and given a service
-    definition (`templates/avahi-smb.service.j2`) advertising `_smb._tcp`, `_device-info._tcp`,
-    and `_adisk._tcp` (the `dk0=adVN=<TimeMachine share>,adVF=0x82` TXT record is what makes
-    System Settings → Time Machine → Add Backup Disk list this box automatically, without a
-    manual connect first). `ufw` allows mDNS (UDP 5353) from the LAN subnet only — mDNS is
-    link-local multicast and doesn't route over the tailnet, so there's no `tailscale0`
-    equivalent; a remote Mac can still connect to `[TimeMachine]` manually by hostname/IP over
-    Tailscale, just without auto-discovery.
+  - **Bonjour/mDNS auto-discovery — removed 2026-09-14.** `avahi-daemon` used to be installed
+    with a service definition advertising `_smb._tcp`, `_device-info._tcp` and `_adisk._tcp` (the
+    `dk0=adVN=<TimeMachine share>,adVF=0x82` TXT record is what made System Settings → Time
+    Machine → Add Backup Disk list this box automatically, without a manual connect first). It
+    was dropped as part of the memory slim-down above; the template and its `ufw` 5353 rule went
+    with it. Connect via LAN IP or Tailscale name, and add the TM destination by mounting the
+    share in Finder first. Git history has the old tasks and template if it's ever wanted back.
   - Accounts are defined in `samba_users` (`roles/samba/defaults/main.yml`), each getting both a
     Unix system account (nologin, home dir only ever used as its Samba share target, never for
     login) and a Samba password set via `smbpasswd`. **Real passwords live in
@@ -161,10 +169,9 @@ actually got deployed. fastfetch and its `libyyjson0` dependency were purged fro
     shipped placeholder deliberately fails an `assert` rather than silently provisioning a share
     with a known password.
   - SMB is restricted to SMB2/3 only (no legacy SMB1). `nmbd` (NetBIOS name service) is masked
-    outright — unneeded since macOS uses mDNS/Bonjour (now genuinely served by `avahi-daemon`,
-    not `nmbd`) and a Linux cifs mount is given an IP/hostname directly, neither relies on
-    NetBIOS browsing. Port 445 is firewalled via the same LAN-subnet-plus-`tailscale0`-interface
-    `ufw` pattern as the `nfs` role; see the Bonjour bullet above for the separate mDNS rule.
+    outright — a Linux cifs mount is given an IP/hostname directly and macOS doesn't rely on
+    NetBIOS browsing either, so nothing here needs it. Port 445 is firewalled via the same
+    LAN-subnet-plus-`tailscale0`-interface `ufw` pattern as the `nfs` role.
   - Note: `smbpasswd` has no idempotent "change if different" mode, so rotating a password in
     `host_vars` after the account already exists needs a manual `smbpasswd` run on the box — the
     playbook only sets it the first time an account is created. For the k3s side, point a CSI

@@ -11,10 +11,15 @@
     label: "{{ item.name }}"
   no_log: true
 
+# install_recommends=false keeps `winbind` (and with it samba-ad-dc) from being pulled back
+# in: they're Recommends of samba, not Depends, and this is a standalone `security = USER`
+# server with no domain to join — winbindd plus its workers were costing ~50-70MB RSS on a
+# 234MB box for nothing. Removed 2026-09-14; see ansible/README.md.
 - name: Install Samba
   ansible.builtin.apt:
     name: samba
     state: present
+    install_recommends: false
     update_cache: true
     cache_valid_time: 3600
 
@@ -130,32 +135,8 @@
     enabled: true
     state: started
 
-- name: Install Avahi for mDNS/Bonjour service advertisement
-  ansible.builtin.apt:
-    name: avahi-daemon
-    state: present
-    update_cache: true
-    cache_valid_time: 3600
-
-- name: Advertise the Time Machine share via mDNS (Bonjour auto-discovery)
-  ansible.builtin.template:
-    src: avahi-smb.service.j2
-    dest: /etc/avahi/services/smb.service
-    owner: root
-    group: root
-    mode: '0644'
-  notify: Restart avahi-daemon
-
-# mDNS is link-local multicast — it doesn't route over the tailnet, so there's no equivalent
-# tailscale0 rule here (a remote Mac could still connect to [TimeMachine] manually by
-# hostname/IP over Tailscale, just without auto-discovery).
-- name: Allow mDNS through ufw from the LAN
-  ansible.builtin.command: "ufw allow from {{ samba_allowed_subnet }} to any port 5353 proto udp"
-  register: samba_ufw_allow_mdns
-  changed_when: "'Skipping' not in samba_ufw_allow_mdns.stdout"
-
-- name: Enable and start avahi-daemon
-  ansible.builtin.systemd:
-    name: avahi-daemon
-    enabled: true
-    state: started
+# Avahi/mDNS was removed 2026-09-14 (it advertised the SMB and _adisk._tcp Time Machine
+# records for Bonjour auto-discovery). Trade-off accepted: the TM destination no longer
+# appears automatically under System Settings -> Time Machine -> Add Backup Disk (mount the
+# share in Finder first, then pick it there), and `iomega.local` no longer resolves — use the
+# LAN IP or the Tailscale name. See ansible/README.md; git history has the old tasks/template.
