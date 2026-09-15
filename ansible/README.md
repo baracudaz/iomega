@@ -269,6 +269,51 @@ isn't irrelevant — it was just never tested together with `sudo automount -vc`
 Each role's tunables live in its own `defaults/main.yml` (e.g. `roles/swap/defaults/main.yml` for
 swapfile size/path) — override via `-e` or a host/group_vars file rather than editing the role.
 
+## The CESA crypto engine: investigated 2026-09-15, deliberately unused
+
+Boot logs show `marvell-cesa f1030000.crypto: CESA device successfully registered`, which
+naturally invites "can we offload crypto to it?" **Answer: no, and it isn't close.** Written down
+so nobody re-runs this investigation.
+
+**It registers 10 algorithms, and none of them are what this box actually uses:**
+
+| | CESA offers | what this box negotiates |
+| --- | --- | --- |
+| ciphers | `cbc/ecb(aes)`, `cbc/ecb(des)`, `cbc/ecb(des3_ede)` | ChaCha20-Poly1305 (SSH default, WireGuard/Tailscale), AES-**GCM**/CCM (SMB3), AES-**CTR** (SSH fallback) |
+| hashes | `sha1`, `md5`, `hmac(sha1)`, `hmac(md5)` — all at **priority 0**, so software wins anyway | HMAC-SHA256, AES-GMAC/CMAC |
+
+CESA is a 2010-era engine and everything here has moved to AEAD modes it predates. Forcing a
+match would mean downgrading to deprecated CBC ciphers — worse security, for the numbers below.
+
+**Even in its best case (AES-128-CBC, which it does support) it mostly loses.** `openssl speed`,
+software vs. the `afalg` engine, 1000s of bytes/sec:
+
+```
+block size       16 B      64 B     256 B      1 KB      8 KB     16 KB
+software     14116.13  19883.42  22377.09  23099.90  22646.78  22560.77
+CESA           133.59    533.02   2130.05   7665.66  27340.80  33644.54
+                105x       37x      10.5x        3x     1.2x      1.5x
+               SLOWER    SLOWER    SLOWER    SLOWER    faster    faster
+```
+
+Per-request DMA setup and interrupt cost dominate: it doesn't break even until somewhere between
+1 KB and 8 KB, which is the wrong shape for network packets and disk sectors. And its 33.6MB/s
+peak is indistinguishable from this box's measured 34.3MB/s network ceiling (see the `samba`
+role above), so even a perfect match would only hand the work to a different bottleneck.
+
+**The one genuinely useful finding — a trap to avoid.** For `cbc(aes)` the kernel sees:
+
+```
+cbc(aes)  mv-cbc-aes          priority 300   <- CESA
+cbc(aes)  cbc(ecb(aes-lib))   priority 100   <- software
+```
+
+Selection is by priority, so **any in-kernel `cbc(aes)` user gets CESA automatically**. dm-crypt
+operates on 512B or 4K sectors — squarely in the range where CESA is 3-10x *slower* — so setting
+up an encrypted volume with `aes-cbc-*` here would produce a silent performance regression
+*caused by the accelerator*. If an encrypted volume is ever wanted on this box, prefer
+`aes-xts-plain64` (XTS isn't in CESA's list, so software handles it) or benchmark first.
+
 ## Usage
 
 ```bash
