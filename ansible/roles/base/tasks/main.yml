@@ -34,6 +34,11 @@
       # what tells you whether the NIC's offloads are on (they are) and what MTU the driver
       # will accept (9500). Same rationale as btop: keep the diagnostic tracked.
       - ethtool
+      # hdparm: drive-level inspection and ATA Secure Erase. Used 2026-09-15 to wipe the
+      # retired 1TB WD before it left the premises — firmware-level erase reaches reallocated
+      # sectors that dd cannot address, and doesn't tie up this weak CPU for hours. Note the
+      # usual blocker (drive "frozen" by the BIOS at boot) doesn't apply on this board.
+      - hdparm
     state: present
     update_cache: true
     cache_valid_time: 3600
