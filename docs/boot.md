@@ -47,6 +47,12 @@ and was retired; `bootcmd_installer` was persisted so the NAND rescue image can 
 launched; and the equally-dead `/boot` fstab entry was removed. **There is no `/boot` filesystem
 on this device any more.** See "Boot-chain cleanup after the re-mirror" below.
 
+**Update (2026-09-15):** the re-mirror finished — `md1` (`/`) and `md2` (`/srv/data`) are both
+`[2/2] [UU]`, clean, mirrored across the two 4TB disks. That completes the arc this doc describes:
+NAND boot → GPT migration → NAND rescue installer → disk swap → full RAID1. The remaining open
+item is **not** redundancy but **backup** (see "Still open" below) — nothing here protects against
+deletion or corruption, only against a disk dying.
+
 ## Overview
 
 1. Boot the official Debian bookworm armel/kirkwood netboot installer (`vmlinuz-6.1.0-50-marvell`
@@ -853,10 +859,24 @@ mount /dev/md2 /mnt/newdata2
 rsync -a --numeric-ids --info=progress2 /srv/data/ /mnt/newdata2/
 ```
 
-Once the copy and its idempotent verification pass complete, cutover follows the same pattern as
-the earlier `/srv/data` migration (`fstab` UUID swap, remount, no reboot needed), followed by
-`mdadm --add /dev/md2 /dev/sda2` to bring the original data partition in as the second mirror
-member.
+The first pass moved 1.19TB / 86,804 files in ~19.5h (~16MB/s — same per-file CPU ceiling as
+every other big copy on this box). Verified before cutover exactly as the earlier migration was:
+an idempotent second pass reported `xfr#0`, and a `du`/file-count cross-check matched exactly
+(**117,997 entries and 1.1T on both sides**).
+
+Cutover then followed the same no-reboot pattern (`fstab` UUID swap → `umount` → `mount`), with
+one wrinkle worth knowing: **the first `umount /srv/data` failed with "target is busy" and the
+subsequent `mount` silently stacked the new filesystem on top of the old one**, leaving both
+mounted at the same path (`df` showed the new one, since the last mount shadows earlier ones).
+The culprit was a stray `lsof +D /srv/data` from an earlier pre-flight check still walking the
+tree and holding a file open. Killing it, unmounting the stacked mount, then unmounting the
+original cleanly produced the intended single mount. Worth checking `mount | grep /srv/data`
+returns exactly one line after any cutover like this.
+
+Finally `mdadm --add /dev/md2 /dev/sda2` brought the original data partition in as the second
+mirror member. Block-level resync of the full 3.6TB partition (mdadm resyncs the whole device,
+not just used space) took ~13h at 70-150MB/s. **Final state: `md2 [2/2] [UU]`, State: clean,
+0 failed** — matching `md1`. Both filesystems are now genuinely redundant across both disks.
 
 ### Current state and what's still open
 
@@ -870,6 +890,20 @@ member.
   (`kwboot` doesn't work here), so an unattended bad initrd silently landing on the only bootable
   copy after a routine kernel update is a real bricking risk; the `flash_erase`/`nandwrite` step
   stays manual and reviewed, same as every other NAND write in this project.
+
+**Still open — worth being clear-eyed about:**
+
+- **There is no backup.** RAID1 covers exactly one failure mode: a disk dying. It does not cover
+  accidental deletion, filesystem corruption, a PSU taking out both drives, theft, or fire — and
+  the only other copy of a good chunk of this data (the AirPort Time Capsule disk) was
+  deliberately wiped to *become* the mirror. `/srv/data` includes the PhotoRec carve, which is
+  not reproducible. Mirrored is not backed up; this is currently the largest risk to the data on
+  this box.
+- **trixie is the end of the line for armel.** It is upstream's last release supporting this
+  architecture (no hardware FPU, so armhf/arm64 aren't options for this SoC). When trixie's
+  support window closes there is no further "upgrade to the next release" move — the box keeps
+  working, but stops receiving security updates. Its current network exposure (ufw default-deny,
+  LAN + tailnet only, no port forwards) is what makes that tolerable, and should stay that way.
 
 ### Boot-chain cleanup after the re-mirror (2026-09-14)
 
