@@ -65,12 +65,21 @@ There are no commands to build, lint, or test — do not look for or invent a bu
   documents the later migration of `/` and `/srv/data` onto the 4TB disks and their re-mirroring
   as RAID1 across both. Links to the doozan.com forum threads that are the upstream
   source for this process.
-- `artifacts/logs/` — captured device state from the stock unit: `boot.txt`/`u-boot.txt` (U-Boot
-  banner/boot log), `dmesg-no-disk.txt`/`dmesg-with-disk.txt` (stock 2.6.31.8 kernel boot log,
-  captured with and without a SATA disk attached — not duplicates), `printenv.txt` (stock U-Boot
-  environment variables), `nandconfig.txt` (NAND-specific env vars), `proc.txt` (`ps -ef` from the
-  running stock firmware). Use these as the reference for "what the stock config looks like" when
-  comparing against a device being reflashed.
+- `artifacts/logs/` — captured device state. Most of it is from the **stock unit**, and is the
+  reference for "what the stock config looks like" when comparing against a device being
+  reflashed: `boot.txt`/`u-boot.txt` (U-Boot banner/boot log), `dmesg-no-disk.txt`/
+  `dmesg-with-disk.txt` (stock 2.6.31.8 kernel boot log, captured with and without a SATA disk
+  attached — not duplicates), `printenv.txt` (stock U-Boot environment variables),
+  `nandconfig.txt` (NAND-specific env vars), `proc.txt` (`ps -ef` from the running stock
+  firmware).
+  Also here, and *not* from the stock unit: `smart-attrlog-WD10EADS-WCAV58156588.csv` and
+  `smart-state-WD10EADS-WCAV58156588.txt` — `smartd`'s own attribute history (147 timestamped
+  readings, 2026-08-25 → 2026-09-13) and last-known state for the original 1TB WD drive, rescued
+  from `/var/lib/smartmontools/` before that drive was secure-erased and given away on
+  2026-09-15. Kept because it's the only surviving record of that disk: zero reallocated/pending/
+  uncorrectable sectors throughout, but 33,500 power-on hours and a Load_Cycle_Count of 764,839
+  still climbing ~73/hour (one head park every ~49s — the classic WD Green idle-timer pathology,
+  ~2.5x past the mechanism's rated life).
 - `artifacts/images/` — photos of the physical hardware (board/label shots), not diagrams.
 - `artifacts/firmware/configuration.icfg` — an exported device configuration (iomega/EMC "icfg"
   format, XML) covering system identity, network, energy, email/alert, and other admin-panel
