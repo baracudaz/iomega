@@ -26,6 +26,36 @@
    printcap name = /dev/null
    disable spoolss = yes
 
+   # Performance. Measured 2026-09-14/15 on this box (single 1.6GHz ARMv5 core, no VFP),
+   # 2GB cold-cache reads of the same file:
+   #
+   #   local read off md2 ........ 93.6 MB/s   (disks are NOT the constraint)
+   #   raw TCP, NAS -> client .... 34.3 MB/s   (/dev/zero, no disk, no samba)
+   #   SMB before sendfile ....... 23.2 MB/s   (68% of the raw TCP ceiling)
+   #   SMB after sendfile ........ 24.5 MB/s   (71% — a real but modest +5.5%)
+   #
+   # The headline finding is the raw TCP number: this CPU cannot drive its own gigabit NIC
+   # past ~34MB/s (~275Mbps), with every offload already enabled (rx/tx checksum, SG, TSO,
+   # GSO, GRO) and the governor already at performance/1.6GHz. So *the network stack is the
+   # binding constraint*, not Samba — which at 71% of the achievable ceiling is doing fine,
+   # and leaves little room for further protocol-level tuning to win back.
+   #
+   # sendfile is kept because it's free and measurably positive: the kernel pushes page-cache
+   # pages straight into the socket rather than copying out to smbd's userspace buffer and
+   # back. Its modest effect here is likely the `vfs objects` stack below — catia/fruit/
+   # streams_xattr intercept the read path, which limits how often the sendfile fast path is
+   # actually taken. Don't expect more from it without dropping the macOS-compat modules.
+   #
+   # If the ~34MB/s ceiling ever needs raising, the lever is jumbo frames (this driver
+   # reports maxmtu 9500) — fewer, larger packets means proportionally less per-packet CPU,
+   # which is the actual bottleneck. That needs the switch and every client to agree on the
+   # MTU, so it's a network-wide change, not a NAS-side one.
+   use sendfile = yes
+
+   # Multi-channel lets a client open parallel connections across several NICs. This box has
+   # one, so it can never help here, and it costs an extra negotiation round-trip per session.
+   server multi channel support = no
+
    # macOS metadata/Time Machine support, applied to every share. catia maps filename
    # characters that are legal on macOS but not SMB; fruit provides Apple resource-fork/
    # metadata handling; streams_xattr is what fruit actually stores that metadata through.

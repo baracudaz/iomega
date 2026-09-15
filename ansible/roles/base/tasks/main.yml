@@ -30,6 +30,10 @@
       # Manually installed 2026-09-13/14 for interactive diagnostics; tracked here so it
       # survives a reprovision instead of being an undocumented manual `apt install`.
       - btop
+      # ethtool: added 2026-09-15 while establishing the network throughput baseline — it's
+      # what tells you whether the NIC's offloads are on (they are) and what MTU the driver
+      # will accept (9500). Same rationale as btop: keep the diagnostic tracked.
+      - ethtool
     state: present
     update_cache: true
     cache_valid_time: 3600

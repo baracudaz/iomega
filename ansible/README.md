@@ -126,7 +126,22 @@ actually got deployed. fastfetch and its `libyyjson0` dependency were purged fro
   If Samba itself ever turns out too heavy again: `smbd` can be stopped and disabled and the
   `samba` package purged, along with the `ufw` rule for 445, without touching
   `/srv/data/shared`, `/srv/data/<user>`, or `/srv/data/timemachine` — none of that data lives
-  in the serving software. Installs `samba` for macOS Finder and CIFS-mounting Linux clients (e.g. the rpi
+  in the serving software.
+
+  **Throughput, measured 2026-09-15** (2GB cold-cache reads of the same file, so the numbers
+  are comparable): local read off `md2` **93.6 MB/s**; raw TCP NAS→client (`/dev/zero`, no disk,
+  no Samba) **34.3 MB/s**; SMB **23.2 MB/s** before `use sendfile`, **24.5 MB/s** after. The
+  conclusion is the raw TCP figure: *this CPU can't drive its own gigabit NIC past ~34MB/s*
+  (~275Mbps), with all offloads already on and the governor already at `performance`/1.6GHz.
+  So the network stack — not Samba, and emphatically not the disks — is what caps this box, and
+  Samba at 71% of the achievable ceiling has little left to give. `vmstat` during a transfer
+  shows 82-98% *system* CPU with 0-6% idle, which is the same story from the other side.
+  Ruled out by checking, each already optimal: CPU governor (`performance` is the only one
+  `kirkwood-cpufreq` offers), readahead (8MB on all four devices), NIC offloads (rx/tx
+  checksum, scatter-gather, TSO, GSO, GRO all on). The one lever with real upside left is
+  **jumbo frames** — the driver reports `maxmtu 9500`, and fewer/larger packets directly
+  attacks the per-packet CPU cost that *is* the bottleneck — but that needs the switch and
+  every client to agree, so it's a network-wide change rather than something to set here. Installs `samba` for macOS Finder and CIFS-mounting Linux clients (e.g. the rpi
   running k3s), with a two-tier IAM model built on top of a single unified data tree (one
   directory can be reached over either protocol, not separate copies per protocol — matching
   how NAS vendors like Synology/QNAP actually structure this):

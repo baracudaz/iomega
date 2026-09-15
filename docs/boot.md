@@ -675,7 +675,7 @@ tmux new-session -d -s datamigrate "sudo rsync -a --numeric-ids --info=progress2
 dataset has no hardlinks/ACLs/xattrs worth preserving, and the per-file overhead of checking for
 them on this hardware wasn't free. Plain `-a` only marginally improved throughput (~11-16MB/s
 sustained). Diagnosed via `vmstat 1 5` (near-0% idle, 30-60%+ system time, load average
-consistently 2-5.5 on this box's single ~400MHz-class ARMv5 core): this is fundamentally CPU-bound
+consistently 2-5.5 on this box's single ARMv5 core): this is fundamentally CPU-bound
 on kernel/syscall overhead from copying tens of thousands of small files, not something further
 rsync flag tuning fixes. Competing services (`smbd`, `nfs-kernel-server`, `winbind`,
 `avahi-daemon`, and the `apt-daily*.timer`s) were stopped for the duration to reduce contention —
