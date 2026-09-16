@@ -47,6 +47,12 @@ and was retired; `bootcmd_installer` was persisted so the NAND rescue image can 
 launched; and the equally-dead `/boot` fstab entry was removed. **There is no `/boot` filesystem
 on this device any more.** See "Boot-chain cleanup after the re-mirror" below.
 
+**Update (2026-09-16):** the NAND initrd had silently drifted out of sync with
+`/etc/mdadm/mdadm.conf` — harmless so far, but the kind of thing that turns a future migration
+into an unbootable box. Closed, along with adding write-intent bitmaps to both arrays (so a disk
+swap no longer costs a full 3.6TB rebuild). See "Why the data array kept coming up as `md127`"
+below — the odd array numbering was the visible symptom of it.
+
 **Update (2026-09-15):** the re-mirror finished — `md1` (`/`) and `md2` (`/srv/data`) are both
 `[2/2] [UU]`, clean, mirrored across the two 4TB disks. That completes the arc this doc describes:
 NAND boot → GPT migration → NAND rescue installer → disk swap → full RAID1. The remaining open
@@ -933,6 +939,73 @@ intact. Both were found by actually checking rather than trusting the notes, and
 
 Net effect on recovery: the device's real recovery path is now a single `run bootcmd_installer`
 at the U-Boot prompt, backed by a payload that has actually been booted end-to-end.
+
+### Why the data array kept coming up as `md127` — and the drift it exposed (2026-09-16)
+
+After the disk swap the data array assembled as `/dev/md127` rather than `/dev/md2`, while root
+correctly came up as `/dev/md1`. Worth understanding rather than shrugging at, because the
+cosmetic symptom had a non-cosmetic cause.
+
+**The number is the clue.** When mdadm can't determine a preferred name for an array it
+allocates one counting *down* from 127. So `md127` means "nothing told mdadm what to call this".
+
+**Why only the data array.** The initramfs assembles arrays at boot using *its own embedded copy*
+of `/etc/mdadm/mdadm.conf`, not the one on the root filesystem (which it hasn't mounted yet).
+Extracting the live NAND initrd showed its embedded copy contained exactly one entry:
+
+```
+HOMEHOST <system>
+ARRAY /dev/md1 metadata=1.2 UUID=3ba68a21:...      <- root only, no md2
+```
+
+The timestamps explain it: that initrd was built at 19:14:17, and `/etc/mdadm/mdadm.conf` was
+modified at 19:37:46 — **23 minutes later**, when the data array was created and its `ARRAY` line
+appended. The NAND initrd was never rebuilt afterwards. So at every boot the initramfs would:
+
+- find root's superblock, match its `ARRAY` line, assemble it as `/dev/md1` — correct;
+- also find the data array's superblock (the `DEVICE` line is commented out, so scanning defaults
+  to all partitions), have no `ARRAY` line for it, and fall back to auto-numbering → `md127`.
+
+By the time the real root takes over the array is already running, and a live array can't be
+renumbered — so the on-disk `mdadm.conf`'s `/dev/md2` preference never got a chance to apply.
+(This also explains the earlier oddity where the root array's conf line appeared to "revert" to
+`/dev/md3`: its superblock `Name` is `iomega:3`, so anything regenerating the conf from live
+metadata writes that.)
+
+**The part that actually mattered.** The naming was harmless — everything mounts by UUID. But it
+was a *symptom of the NAND initrd having drifted from `/etc/mdadm/mdadm.conf`*, and that drift is
+invisible until it is fatal: it was benign only because the one entry the initramfs genuinely
+needs — root — happened to still be correct. Change root's array UUID (another migration, a
+rebuild) without refreshing NAND and the box simply doesn't boot, with the serial console as the
+only way to find out why.
+
+**Fixed 2026-09-16**, together with adding write-intent bitmaps so the two reboots became one:
+
+```bash
+mdadm --grow --bitmap=internal /dev/md1      # future re-adds resync changed chunks only,
+mdadm --grow --bitmap=internal /dev/md127    # not the whole 3.6TB (see below)
+update-initramfs -u -k $(uname -r)           # post-update.d hook auto-builds /boot/uInitrd-staged
+# verify the staged image BEFORE writing: both ARRAY lines present, gzip segment, mdadm binary
+flash_erase -q /dev/mtd4 0 0 && nandwrite -q -p /dev/mtd4 /boot/uInitrd-staged
+# read back and cmp byte-for-byte, then reboot
+```
+
+Result after reboot: `md1` and `md2` (correctly named now), both `[2/2] [UU]`, bitmaps intact,
+zero errors. The fix working is itself the confirmation of the diagnosis.
+
+**Why the bitmaps were added at the same time.** Re-adding the returning 4TB half had just cost a
+full 3.6TB rebuild (~7h) to recover a mere **48 events** of divergence — the media store had
+barely been written to while the disk was out. Without a write-intent bitmap mdadm cannot know
+which regions changed, so `--re-add` is refused and `--add` does a full recovery. With one, the
+same swap resyncs in seconds. The cost is a small write penalty (bitmap updates), which is a
+good trade on a read-heavy media store — and this box has now had disks swapped twice in three
+days, so it is not a hypothetical.
+
+**The standing lesson**: `/etc/mdadm/mdadm.conf` and the NAND initrd must be updated *together*.
+The `post-update.d/kirkwood-uinitrd` hook (ansible `uboot` role) exists for exactly this — it
+rebuilds and stages a ready `uInitrd` on every `update-initramfs` run and pings ntfy, so the
+drift announces itself instead of waiting. This was its first real exercise, and it worked.
+The NAND write itself deliberately stays manual.
 
 ## Base Setup
 
