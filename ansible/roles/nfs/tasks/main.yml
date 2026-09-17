@@ -79,6 +79,26 @@
   register: nfs_ufw_allow_tailnet
   changed_when: "'Skipping' not in nfs_ufw_allow_tailnet.stdout"
 
+# `ufw allow` above is additive-only, so if the box ever moves to a different LAN (as
+# happened 2026-09-17), the rule for the *previous* subnet would otherwise linger forever
+# instead of being replaced — a stale ALLOW that's wider than intended once the box is back
+# on a subnet it used before, and just clutter otherwise. Only plain, subnet-scoped IPv4
+# rules for this port are candidates: the tailnet rule above is interface-scoped (`on
+# tailscale0`), never subnet-scoped, so it can't go stale this way and is excluded by the
+# match pattern (it doesn't start with "2049/tcp<space>ALLOW IN<space><digit>").
+- name: Check current ufw rules for the NFS port
+  ansible.builtin.command: ufw status
+  register: nfs_ufw_status
+  changed_when: false
+
+- name: Remove stale NFS ufw rules from a previous LAN subnet
+  ansible.builtin.command: "ufw delete allow from {{ item }} to any port 2049 proto tcp"
+  loop: "{{ nfs_ufw_status.stdout_lines
+            | select('match', '^2049/tcp\\s+ALLOW IN\\s+\\d')
+            | map('regex_replace', '^2049/tcp\\s+ALLOW IN\\s+(\\S+)\\s*$', '\\1')
+            | reject('equalto', nfs_allowed_subnet)
+            | list }}"
+
 - name: Enable and start nfs-kernel-server
   ansible.builtin.systemd:
     name: nfs-kernel-server

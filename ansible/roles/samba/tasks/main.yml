@@ -124,10 +124,27 @@
 # Scoped by interface, same reasoning as the nfs role's tailnet rule: matching the
 # tailscale0 interface (traffic that actually arrived over the tailnet) rather than
 # Tailscale's shared/reusable CGNAT range (100.64.0.0/10).
+# See the nfs role's equivalent task for why this is needed: `ufw allow` is additive-only,
+# so a LAN-subnet change (e.g. 2026-09-17) leaves the old subnet's rule in place unless
+# something explicitly prunes it. The tailnet rule above is excluded by the match pattern
+# since it's interface-scoped, not subnet-scoped.
 - name: Allow SMB through ufw over the tailnet
   ansible.builtin.command: "ufw allow in on tailscale0 to any port 445 proto tcp"
   register: samba_ufw_allow_tailnet
   changed_when: "'Skipping' not in samba_ufw_allow_tailnet.stdout"
+
+- name: Check current ufw rules for the SMB port
+  ansible.builtin.command: ufw status
+  register: samba_ufw_status
+  changed_when: false
+
+- name: Remove stale SMB ufw rules from a previous LAN subnet
+  ansible.builtin.command: "ufw delete allow from {{ item }} to any port 445 proto tcp"
+  loop: "{{ samba_ufw_status.stdout_lines
+            | select('match', '^445/tcp\\s+ALLOW IN\\s+\\d')
+            | map('regex_replace', '^445/tcp\\s+ALLOW IN\\s+(\\S+)\\s*$', '\\1')
+            | reject('equalto', samba_allowed_subnet)
+            | list }}"
 
 - name: Enable and start smbd
   ansible.builtin.systemd:
