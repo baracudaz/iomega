@@ -240,7 +240,8 @@ from then on):**
    refresh to pick it up (macOS appears to cache per-host connection state — see the
    `ServerMarkers`/`GetKnownServerMarker` log lines from debugging this — and a plain file edit
    doesn't invalidate that cache).
-3. Finder → Go → Connect to Server → `nfs://192.168.0.199/` → Connect. Plain URL, no path
+3. Finder → Go → Connect to Server → `nfs://<NAS address>/` (its current LAN IP or Tailscale
+   name — no mDNS, see `docs/boot.md`'s "Network" section) → Connect. Plain URL, no path
    suffix, no `vers=4,` prefix trick, no colon-before-path variant — none of that was ever
    necessary. **No `/shared` suffix**: the NFS export root *is* `nfs_shared_dir`
    (`/srv/data/shared`) directly (see the `nfs` role bullet above) — appending `/shared` looks

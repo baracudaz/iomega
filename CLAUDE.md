@@ -63,8 +63,9 @@ There are no commands to build, lint, or test — do not look for or invent a bu
   that resized NAND's `kernel`/`initrd` MTD partitions to make `bootcmd_nand` possible, and NAND
   archaeology findings from the original stock `boot` partition before it was overwritten. Also
   documents the later migration of `/` and `/srv/data` onto the 4TB disks and their re-mirroring
-  as RAID1 across both. Links to the doozan.com forum threads that are the upstream
-  source for this process.
+  as RAID1 across both, and the network setup (DHCP, no mDNS, Tailscale as the stable address —
+  no IPs are recorded in the repo by design). Links to the doozan.com forum threads that are
+  the upstream source for this process.
 - `artifacts/logs/` — captured device state. Most of it is from the **stock unit**, and is the
   reference for "what the stock config looks like" when comparing against a device being
   reflashed: `boot.txt`/`u-boot.txt` (U-Boot banner/boot log), `dmesg-no-disk.txt`/

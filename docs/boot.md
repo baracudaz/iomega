@@ -1007,6 +1007,33 @@ rebuilds and stages a ready `uInitrd` on every `update-initramfs` run and pings 
 drift announces itself instead of waiting. This was its first real exercise, and it worked.
 The NAND write itself deliberately stays manual.
 
+## Network
+
+- **Addressing: DHCP**, from whatever router the single Gigabit port is plugged into. That's the
+  Debian Installer's default and was never switched to static — the box later moved to a
+  different LAN (2026-09-17) with no network config edits at all, only a firewall-rule cleanup.
+  Not yet re-checked on the box itself; confirm with the commands below next time it's up. If a
+  stable LAN address is wanted, set a DHCP reservation on the router rather than a static IP on
+  the box, so it keeps working if it moves again.
+- **Hostname `iomega`**, set by the ansible `base` role. **No mDNS**: Avahi was removed
+  2026-09-14 (see `ansible/README.md`), so `iomega.local` does not resolve.
+- **Reaching it:** over Tailscale by its MagicDNS name — the one address that doesn't change
+  when the LAN does (the ansible inventory host `iomega` resolves through an `~/.ssh/config`
+  alias pointing there). On the LAN, by its current DHCP lease: the router's client list, or
+  the commands below over the serial console.
+- **Firewall:** the `nfs`/`samba` roles scope their ufw LAN rules to the subnet computed from
+  the box's default-route interface at playbook-run time, and prune rules for any old subnet. So
+  after a LAN move, rerun the playbook; nothing in the repo hardcodes an address.
+- **When it's unreachable on both** (no lease, Tailscale down): the serial console still works,
+  since it doesn't depend on the network at all.
+
+```
+cat /etc/network/interfaces /etc/network/interfaces.d/* 2>/dev/null   # "inet dhcp" vs "inet static"
+ip -4 addr show                                                         # "dynamic" on the address = DHCP lease
+ip route show default                                                   # current gateway / LAN
+tailscale status                                                        # tailnet state and name
+```
+
 ## Base Setup
 
 + [forum.doozan.com](https://forum.doozan.com/read.php?2,12096)
