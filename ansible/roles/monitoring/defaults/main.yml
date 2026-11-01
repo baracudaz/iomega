@@ -1,5 +1,5 @@
 ---
-# Real value lives in ansible/host_vars/iomega-sk.yml (gitignored — the topic name
+# Real value lives in ansible/host_vars/iomega.yml (gitignored — the topic name
 # is a shared secret: anyone who knows it can read your alerts or post fake ones
 # on public ntfy.sh). This placeholder deliberately fails loudly if not overridden.
 monitoring_ntfy_topic: CHANGE_ME_SEE_HOST_VARS

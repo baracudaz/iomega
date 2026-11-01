@@ -6,7 +6,7 @@
     that: monitoring_ntfy_topic != 'CHANGE_ME_SEE_HOST_VARS'
     fail_msg: >-
       monitoring_ntfy_topic is still the placeholder — set the real value in
-      ansible/host_vars/iomega-sk.yml (see roles/monitoring/defaults/main.yml).
+      ansible/host_vars/iomega.yml (see roles/monitoring/defaults/main.yml).
   no_log: true
 
 - name: Install monitoring dependencies

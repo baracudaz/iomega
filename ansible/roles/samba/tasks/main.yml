@@ -4,7 +4,7 @@
     that: item.password != 'CHANGE_ME_SEE_HOST_VARS'
     fail_msg: >-
       samba_users entry '{{ item.name }}' still has the placeholder password — set the real
-      value in ansible/host_vars/iomega-sk.yml (see samba_users' comment in
+      value in ansible/host_vars/iomega.yml (see samba_users' comment in
       roles/samba/defaults/main.yml).
   loop: "{{ samba_users }}"
   loop_control:

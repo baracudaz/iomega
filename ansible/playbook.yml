@@ -1,6 +1,6 @@
 ---
 - name: Configure Iomega ix2-dl Debian NAS
-  hosts: iomega-sk
+  hosts: iomega
   become: true
   roles:
     - role: base

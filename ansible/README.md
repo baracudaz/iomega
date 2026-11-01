@@ -42,7 +42,7 @@ Eleven roles defined, in this order (`playbook.yml`), all applied:
   its `PROGRAM` directive), smartd alerts (via `-M exec`, smartd configured against both disks by
   stable `/dev/disk/by-id` path with a weekly long self-test schedule), and an lm-sensors hardware
   alarm-bit check on a systemd timer. Depends on `smartmontools`/`lm-sensors` from `base`. **The
-  real ntfy topic lives in `ansible/host_vars/iomega-sk.yml` (gitignored, not this repo)** — it's a
+  real ntfy topic lives in `ansible/host_vars/iomega.yml` (gitignored, not this repo)** — it's a
   bearer secret: anyone who knows it can read your alerts or post fake ones on public ntfy.sh.
   `defaults/main.yml`'s placeholder is rejected by an `assert` at the top of the role — ntfy.sh
   itself accepts any topic name, so without that check a forgotten topic would silently publish
@@ -182,7 +182,7 @@ actually got deployed. fastfetch and its `libyyjson0` dependency were purged fro
   - Accounts are defined in `samba_users` (`roles/samba/defaults/main.yml`), each getting both a
     Unix system account (nologin, home dir only ever used as its Samba share target, never for
     login) and a Samba password set via `smbpasswd`. **Real passwords live in
-    `ansible/host_vars/iomega-sk.yml`** (gitignored, same pattern as `monitoring_ntfy_topic`) — the
+    `ansible/host_vars/iomega.yml`** (gitignored, same pattern as `monitoring_ntfy_topic`) — the
     shipped placeholder deliberately fails an `assert` rather than silently provisioning a share
     with a known password.
   - SMB is restricted to SMB2/3 only (no legacy SMB1). `nmbd` (NetBIOS name service) is masked
@@ -318,10 +318,10 @@ up an encrypted volume with `aes-cbc-*` here would produce a silent performance 
 
 ## Usage
 
-### Required variables (`host_vars/iomega-sk.yml`)
+### Required variables (`host_vars/iomega.yml`)
 
 `ansible/host_vars/` is gitignored, so a fresh clone doesn't have it. Create
-`ansible/host_vars/iomega-sk.yml` (the filename must match the inventory hostname) before the
+`ansible/host_vars/iomega.yml` (the filename must match the inventory hostname) before the
 first run:
 
 ```yaml
@@ -341,7 +341,7 @@ deploy with them.
 Values that are specific to this one box and need changing for any other unit live in tracked
 files instead:
 
-- `inventory.ini` — hostname `iomega-sk`, SSH user `admin`, key `~/.ssh/id_ed25519_iomega`.
+- `inventory.ini` — hostname `iomega`, SSH user `admin`, key `~/.ssh/id_ed25519_iomega`.
 - `roles/monitoring/defaults/main.yml` — `monitoring_smart_devices`, the two disks'
   `/dev/disk/by-id` paths (serial-keyed). smartd would watch nonexistent devices on any other
   hardware. `ls /dev/disk/by-id/ata-*` on the box lists the right ones.
