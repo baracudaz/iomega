@@ -17,7 +17,9 @@ genuinely different, disk-boot device and is not interchangeable with this one; 
   project's actual ix2-dl device, kept for reference while reflashing.
 - [`reference/ix2-ng/`](reference/ix2-ng/) — factory reimaging material for the different,
   disk-boot ix2-ng device — comparison reference only, not applicable to this ix2-dl.
-- [`ansible/`](ansible/) — provisioning playbooks for the Debian install (planned, not started).
+- [`ansible/`](ansible/) — the playbook (eleven roles) that provisions the Debian userspace: packages,
+  firewall, RAID/SMART alerting, tailscale, NFS, Samba, and more. See
+  [`ansible/README.md`](ansible/README.md).
 
 ## Getting started
 
