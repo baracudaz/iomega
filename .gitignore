@@ -4,3 +4,6 @@ ansible/host_vars/
 # 1GB NAND "boot"/UBI-rootfs dump — too large to commit, unlike the other small
 # artifacts/firmware/*.bin partition backups. Kept locally only.
 artifacts/firmware/uboot-boot-dump.bin
+
+# ix2-ng factory boot.tgz (247MB) — over GitHub's 100MB file limit. Kept locally only.
+reference/ix2-ng/boot.tgz

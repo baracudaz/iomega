@@ -14,3 +14,6 @@ The files in this directory (`zImage`, `initrd`, `boot.tgz`) are an EMC factory 
 for the **ix2-ng disk-boot variant**. They are **not applicable** to this project's NAND-based
 ix2-dl unit and should not be flashed to it. Kept here only for reference/comparison in case the
 distinction becomes relevant later.
+
+`boot.tgz` (247MB) is over GitHub's 100MB per-file limit, so it is git-ignored and kept only in
+local checkouts; `zImage` and `initrd` are committed.

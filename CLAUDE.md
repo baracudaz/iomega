@@ -89,9 +89,10 @@ There are no commands to build, lint, or test — do not look for or invent a bu
   `kirkwood-lenovo-ix2-dl.dtb`/`.dts` (original) plus `kirkwood-lenovo-ix2-dl-resized.dtb`/`.dts`
   (edited, currently deployed) — the device-tree source behind the current NAND partition layout
   and `bootcmd_nand` boot chain.
-- `reference/ix2-ng/` — factory reimaging package (`zImage`, `initrd`, `boot.tgz`) for the
-  **different, disk-boot ix2-ng device** — kept for comparison only, not applicable to this
-  project's ix2-dl. See `reference/ix2-ng/README.md` for why it's split out.
+- `reference/ix2-ng/` — factory reimaging package (`zImage`, `initrd`, plus a local-only,
+  git-ignored `boot.tgz`) for the **different, disk-boot ix2-ng device** — kept for comparison
+  only, not applicable to this project's ix2-dl. See `reference/ix2-ng/README.md` for why it's
+  split out.
 - `ansible/` — a real, actively-used playbook (eleven roles) that provisions this NAS's Debian
   userspace end to end (packages, swap, security/firewall, tuning, RAID/SMART alerting via
   ntfy.sh, tailscale, NFS, Samba, package cleanup, disk-diagnostics binaries) — see
