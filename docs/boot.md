@@ -1012,9 +1012,12 @@ The NAND write itself deliberately stays manual.
 - **Addressing: DHCP**, from whatever router the single Gigabit port is plugged into. That's the
   Debian Installer's default and was never switched to static — the box later moved to a
   different LAN (2026-09-17) with no network config edits at all, only a firewall-rule cleanup.
-  Not yet re-checked on the box itself; confirm with the commands below next time it's up. If a
-  stable LAN address is wanted, set a DHCP reservation on the router rather than a static IP on
-  the box, so it keeps working if it moves again.
+  Not yet re-checked on the box itself; confirm with the commands below next time it's up.
+- **It should have a DHCP reservation on the router**, so its LAN address stays stable for
+  NFS/Samba clients. A reservation rather than a static IP on the box: the box stays on plain
+  DHCP, so moving it to another network still just works, and the router stays the one place
+  that decides its address. Set it up on each new router (match on the box's MAC, from
+  `ip link show`); the address itself is deliberately not recorded here.
 - **Hostname `iomega`**, set by the ansible `base` role. **No mDNS**: Avahi was removed
   2026-09-14 (see `ansible/README.md`), so `iomega.local` does not resolve.
 - **Reaching it:** over Tailscale by its MagicDNS name — the one address that doesn't change
