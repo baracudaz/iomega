@@ -44,7 +44,9 @@ Eleven roles defined, in this order (`playbook.yml`), all applied:
   alarm-bit check on a systemd timer. Depends on `smartmontools`/`lm-sensors` from `base`. **The
   real ntfy topic lives in `ansible/host_vars/iomega-sk.yml` (gitignored, not this repo)** — it's a
   bearer secret: anyone who knows it can read your alerts or post fake ones on public ntfy.sh.
-  `defaults/main.yml`'s placeholder deliberately fails loudly (curl 404s) if you forget to set it.
+  `defaults/main.yml`'s placeholder is rejected by an `assert` at the top of the role — ntfy.sh
+  itself accepts any topic name, so without that check a forgotten topic would silently publish
+  alerts to a public `CHANGE_ME_SEE_HOST_VARS` topic.
 
 **No `motd` role (dropped 2026-09-11).** A fastfetch-based dynamic SSH login banner existed
 briefly but was removed after it turned out to be *why* SSH logins felt slow: Debian's stock
@@ -315,6 +317,37 @@ up an encrypted volume with `aes-cbc-*` here would produce a silent performance 
 `aes-xts-plain64` (XTS isn't in CESA's list, so software handles it) or benchmark first.
 
 ## Usage
+
+### Required variables (`host_vars/iomega-sk.yml`)
+
+`ansible/host_vars/` is gitignored, so a fresh clone doesn't have it. Create
+`ansible/host_vars/iomega-sk.yml` (the filename must match the inventory hostname) before the
+first run:
+
+```yaml
+# ntfy.sh topic for RAID/SMART/sensor alerts. Treat it like a password: pick something long
+# and unguessable — anyone who knows it can read your alerts or post fake ones.
+monitoring_ntfy_topic: <long-random-topic-name>
+
+# Samba accounts (each also gets a nologin system user and a private home share).
+samba_users:
+  - name: admin
+    password: <samba-password>
+```
+
+Both roles `assert` against their `CHANGE_ME_SEE_HOST_VARS` placeholders and stop rather than
+deploy with them.
+
+Values that are specific to this one box and need changing for any other unit live in tracked
+files instead:
+
+- `inventory.ini` — hostname `iomega-sk`, SSH user `admin`, key `~/.ssh/id_ed25519_iomega`.
+- `roles/monitoring/defaults/main.yml` — `monitoring_smart_devices`, the two disks'
+  `/dev/disk/by-id` paths (serial-keyed). smartd would watch nonexistent devices on any other
+  hardware. `ls /dev/disk/by-id/ata-*` on the box lists the right ones.
+- `roles/security/defaults/main.yml` — `security_admin_user` (`admin`).
+
+### Running
 
 ```bash
 ansible-galaxy collection install ansible.posix   # provides the sysctl module used below

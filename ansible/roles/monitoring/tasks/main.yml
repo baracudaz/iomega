@@ -1,4 +1,14 @@
 ---
+# ntfy.sh accepts any topic name, so the placeholder would not fail on its own — alerts would
+# silently go to a public topic named CHANGE_ME_SEE_HOST_VARS that anyone can subscribe to.
+- name: Refuse to proceed with a placeholder ntfy topic
+  ansible.builtin.assert:
+    that: monitoring_ntfy_topic != 'CHANGE_ME_SEE_HOST_VARS'
+    fail_msg: >-
+      monitoring_ntfy_topic is still the placeholder — set the real value in
+      ansible/host_vars/iomega-sk.yml (see roles/monitoring/defaults/main.yml).
+  no_log: true
+
 - name: Install monitoring dependencies
   ansible.builtin.apt:
     name:
