@@ -24,3 +24,10 @@ genuinely different, disk-boot device and is not interchangeable with this one; 
 ## Getting started
 
 See [`docs/boot.md`](docs/boot.md) for the U-Boot boot chain and image build steps.
+
+## License
+
+The notes, docs, and Ansible playbook are [MIT](LICENSE)-licensed. That doesn't extend to
+third-party material kept here for reference: the EMC/Iomega firmware images and dumps under
+`artifacts/firmware/` and `reference/ix2-ng/` belong to their respective owners, and the
+device-tree files are derived from the Linux kernel (GPL-2.0).
